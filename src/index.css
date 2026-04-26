@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Grid Carbon Tracker — control-room dark theme.
+   All colors HSL. Intensity tokens shift the entire UI palette. */
+
+@layer base {
+  :root {
+    /* Deep night-grid background */
+    --background: 222 40% 6%;
+    --foreground: 210 30% 96%;
+
+    --card: 222 35% 9%;
+    --card-foreground: 210 30% 96%;
+
+    --popover: 222 35% 9%;
+    --popover-foreground: 210 30% 96%;
+
+    /* Primary = electric green */
+    --primary: 142 85% 50%;
+    --primary-foreground: 222 47% 8%;
+
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 210 30% 96%;
+
+    --muted: 222 25% 13%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 222 30% 16%;
+    --accent-foreground: 210 30% 96%;
+
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 25% 16%;
+    --input: 222 25% 16%;
+    --ring: 142 85% 50%;
+
+    --radius: 1rem;
+
+    /* Carbon intensity scale (low → high) */
+    --intensity-low: 152 70% 50%;     /* clean green */
+    --intensity-medium: 42 95% 58%;   /* warning amber */
+    --intensity-high: 12 85% 58%;     /* dirty red */
+
+    /* Energy source colors — semantic, branded per source */
+    --source-nuclear: 195 90% 60%;    /* signature steady cyan */
+    --source-solar: 45 95% 60%;       /* sun yellow */
+    --source-wind: 190 60% 70%;       /* sky */
+    --source-hydro: 210 80% 60%;      /* water blue */
+    --source-geothermal: 25 80% 55%;  /* earth */
+    --source-biomass: 90 50% 50%;     /* leaf */
+    --source-gas: 280 30% 55%;        /* muted purple */
+    --source-coal: 0 0% 30%;          /* dark grey */
+    --source-oil: 20 25% 35%;         /* brown */
+    --source-unknown: 222 15% 40%;
+
+    /* Gradients */
+    --gradient-bg: radial-gradient(ellipse at top, hsl(222 45% 12%) 0%, hsl(222 40% 6%) 60%);
+    --gradient-clean: linear-gradient(135deg, hsl(var(--intensity-low)) 0%, hsl(var(--source-nuclear)) 100%);
+    --gradient-dirty: linear-gradient(135deg, hsl(var(--intensity-medium)) 0%, hsl(var(--intensity-high)) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(222 35% 11%) 0%, hsl(222 35% 8%) 100%);
+
+    /* Glows */
+    --glow-clean: 0 0 60px hsl(var(--intensity-low) / 0.35);
+    --glow-warn: 0 0 60px hsl(var(--intensity-medium) / 0.4);
+    --glow-dirty: 0 0 60px hsl(var(--intensity-high) / 0.45);
+    --glow-nuclear: 0 0 80px hsl(var(--source-nuclear) / 0.4);
+
+    --shadow-elevated: 0 20px 50px -20px hsl(222 60% 2% / 0.8);
+
+    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply text-foreground;
+    background: var(--gradient-bg);
+    background-attachment: fixed;
+    font-feature-settings: "ss01", "cv11";
+  }
+}
+
+@layer utilities {
+  .text-intensity-low { color: hsl(var(--intensity-low)); }
+  .text-intensity-medium { color: hsl(var(--intensity-medium)); }
+  .text-intensity-high { color: hsl(var(--intensity-high)); }
+  .bg-card-gradient { background: var(--gradient-card); }
+  .glow-nuclear { box-shadow: var(--glow-nuclear); }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
+  @keyframes sweep {
+    from { stroke-dashoffset: var(--dash-len, 1000); }
+    to { stroke-dashoffset: 0; }
+  }
+  .animate-sweep { animation: sweep 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+  .nuclear-glow {
+    position: relative;
+    background: linear-gradient(135deg, hsl(220 70% 12%) 0%, hsl(265 60% 14%) 100%);
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+  .nuclear-glow::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(210 100% 60%), hsl(270 90% 65%), hsl(195 90% 60%));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: nuclear-shimmer 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes nuclear-shimmer {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in-up { animation: fade-in-up 0.35s ease-out both; }
+}
