@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/gridwise/AppShell";
 import { PaloVerdeCallout } from "@/components/gridwise/PaloVerdeCallout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/components/gridwise/AuthProvider";
 import { forecastCarbonIntensity } from "@/lib/forecast";
 import { formatHour, intensityClass } from "@/lib/gridwise";
+import { fetchProfile } from "@/lib/repo";
 import { CircleAlert, CircleCheck, Loader2, RefreshCw } from "lucide-react";
 
 interface GridData {
@@ -14,18 +16,36 @@ interface GridData {
 }
 
 export default function ForecastPage() {
+  const { user, loading: authLoading } = useAuth();
   const [grid, setGrid] = useState<GridData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [profileCity, setProfileCity] = useState<string | null | undefined>(undefined);
+  const forecastCity = profileCity ?? "Phoenix";
 
-  const loadGrid = async () => {
+  useEffect(() => {
+    if (authLoading) {
+      setProfileCity(undefined);
+      return;
+    }
+    if (!user) {
+      setProfileCity(null);
+      return;
+    }
+    setProfileCity(undefined);
+    fetchProfile(user.id)
+      .then(({ profile }) => setProfileCity(profile?.city ?? null))
+      .catch(() => setProfileCity(null));
+  }, [authLoading, user]);
+
+  const loadGrid = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/grid-intensity", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: "Phoenix, Arizona" }),
+        body: JSON.stringify({ address: `${forecastCity}, Arizona` }),
       });
       const data = await res.json();
       if (!res.ok || data?.error) throw new Error(data?.message || data?.error || `HTTP ${res.status}`);
@@ -36,22 +56,23 @@ export default function ForecastPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [forecastCity]);
 
   useEffect(() => {
+    if (profileCity === undefined) return;
     loadGrid();
-  }, []);
+  }, [loadGrid, profileCity]);
 
   const forecast = useMemo(() => forecastCarbonIntensity(grid?.history?.history ?? [], 24), [grid]);
   const guidance = useMemo(() => buildGuidance(forecast?.points ?? []), [forecast]);
 
   return (
-    <AppShell title="Grid outlook" subtitle="ML forecast for the next 24 hours in Phoenix, AZ.">
+    <AppShell title="Grid outlook" subtitle={`ML forecast for the next 24 hours in ${forecastCity}, AZ.`}>
       <div className="space-y-4">
         <Card className="bg-card-gradient border-border p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Predicted carbon intensity</h2>
-            <Button variant="ghost" size="icon" onClick={loadGrid} disabled={loading} className="h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={loadGrid} disabled={loading || profileCity === undefined} className="h-8 w-8">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
           </div>
