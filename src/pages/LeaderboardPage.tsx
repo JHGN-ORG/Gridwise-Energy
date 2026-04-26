@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/gridwise/AppShell";
 import { Card } from "@/components/ui/card";
-import { Trophy, Loader2, Target, TrendingUp } from "lucide-react";
+import { Trophy, Loader2, Target } from "lucide-react";
 import { useAuth } from "@/components/gridwise/AuthProvider";
 import { Profile } from "@/lib/gridwise";
-import { equivalenciesFor } from "@/lib/equivalencies";
+import { EquivalenciesGrid } from "@/components/gridwise/EquivalenciesGrid";
 
 interface LeaderboardEntry {
   rank: number;
@@ -66,8 +66,6 @@ export default function LeaderboardPage({ profile }: { profile: Profile }) {
     };
   }, []);
 
-  const myEntry = data?.leaderboard.find((e) => e.userId === user?.id);
-
   return (
     <AppShell title="Community Impact" subtitle="See how you stack up">
       <div className="space-y-6">
@@ -89,20 +87,7 @@ export default function LeaderboardPage({ profile }: { profile: Profile }) {
               <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-3 text-center">
                 Real-world equivalent
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {equivalenciesFor(data.communityTotal).map((eq) => (
-                  <div
-                    key={eq.label}
-                    className="rounded-xl border border-border bg-background/40 p-3 text-center"
-                    title={eq.hint}
-                  >
-                    <div className="text-lg font-semibold text-intensity-low tabular-nums">{eq.value}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
-                      {eq.label}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <EquivalenciesGrid lbsCO2={data.communityTotal} />
             </div>
           )}
         </Card>
@@ -149,29 +134,6 @@ export default function LeaderboardPage({ profile }: { profile: Profile }) {
           </div>
         </Card>
 
-        {/* Sticky personal rank if logged in */}
-        {myEntry && (
-          <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+60px)] left-0 right-0 z-30 px-5 sm:px-8 pointer-events-none">
-            <div className="mx-auto max-w-6xl w-full">
-              <div className="max-w-md mx-auto pointer-events-auto">
-                <Card className="bg-background/95 backdrop-blur-md border border-primary/50 shadow-lg shadow-primary/10 p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/20 h-8 w-8 rounded-full flex items-center justify-center">
-                      <TrendingUp className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-medium text-muted-foreground">Your Rank</div>
-                      <div className="text-sm font-bold text-foreground">#{myEntry.rank}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-intensity-low">{myEntry.totalSaved.toFixed(1)} lbs</div>
-                  </div>
-                </Card>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </AppShell>
   );

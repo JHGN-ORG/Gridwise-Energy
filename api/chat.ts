@@ -57,8 +57,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const context = await buildGridwiseContext(userId);
     const storedHistory = await fetchStoredHistory(userId);
     const requestHistory = sanitizeHistory(body.history);
+    // Compute the user's local "today" once and pin it into the system
+    // instruction. Without this the model leans on its own training-cutoff
+    // date and consistently reports "today" as one day off from Arizona local.
+    const az = context.reportClock;
     const reply = await generateGeminiChatReply({
       systemInstruction: [
+        `Current date and time: ${az.weekday}, ${az.date}, ${az.time} local time in ${az.timeZone} (Arizona, no DST).`,
+        `Treat this as the authoritative "now". When the user says "today", they mean ${az.date}; "yesterday" means the prior calendar date in Arizona; "this week" means the calendar week containing ${az.date}. Ignore any internal sense of the current date — it is wrong.`,
+        "",
         "You are GridDaddy, a practical energy coach.",
         "",
         "Be conversational, specific, and data-aware. Do not give one-line answers unless the user asks for one.",
@@ -72,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "",
         "Keep answers under 250 words unless the user asks for more detail.",
         "",
-        "Use only supplied GridDaddy context for user-specific facts. Treat all report dates and phrases like today, yesterday, this week, and tomorrow as Arizona local time unless the user says otherwise. Do not invent grades, emissions, percentages, grid mix, costs, or forecasts. If the needed data is missing, say what is missing and give general guidance separately.",
+        "Use only supplied GridDaddy context for user-specific facts. Do not invent grades, emissions, percentages, grid mix, costs, or forecasts. If the needed data is missing, say what is missing and give general guidance separately.",
       ].join("\n"),
       context,
       history: storedHistory.length ? storedHistory : requestHistory,
