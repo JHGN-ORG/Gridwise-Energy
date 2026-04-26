@@ -178,7 +178,7 @@ function InsightsChatCard() {
             <Trophy className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold">Ask GRIDDADDY</h2>
+            <h2 className="text-sm font-semibold">Ask GridDaddy</h2>
             <p className="text-xs text-muted-foreground">Chat about your check-ins, appliance timing, and carbon impact.</p>
           </div>
         </div>
