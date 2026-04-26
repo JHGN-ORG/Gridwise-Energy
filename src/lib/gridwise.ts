@@ -1,4 +1,4 @@
-// GridWise data layer — Supabase-backed, with home-size factors.
+// GridDaddy data layer — home-size factors and grid intensity helpers.
 
 export type ApplianceId =
   | "hvac"

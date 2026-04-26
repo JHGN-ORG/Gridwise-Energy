@@ -20,6 +20,7 @@ import {
   todayISO,
 } from "@/lib/gridwise";
 import { fetchCheckIn, upsertCheckIn } from "@/lib/repo";
+import { equivalenciesFor } from "@/lib/equivalencies";
 import { useAuth } from "@/components/gridwise/AuthProvider";
 import { Leaf, Loader2, RefreshCw, Sparkles, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
@@ -308,15 +309,36 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
               })}
             </div>
             {result.savedLbs > 0.01 && (
-              <p className="mt-5 text-sm bg-intensity-low/10 border border-[hsl(var(--intensity-low)/0.3)] rounded-xl p-3">
-                <span className="text-intensity-low font-semibold">Shift it next time:</span> you’d have saved{" "}
-                <span className="font-semibold">{result.savedLbs.toFixed(2)} lbs CO₂</span> today.
-              </p>
+              <>
+                <p className="mt-5 text-sm bg-intensity-low/10 border border-[hsl(var(--intensity-low)/0.3)] rounded-xl p-3">
+                  <span className="text-intensity-low font-semibold">Shift it next time:</span> you’d have saved{" "}
+                  <span className="font-semibold">{result.savedLbs.toFixed(2)} lbs CO₂</span> today.
+                </p>
+                <div className="mt-4">
+                  <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
+                    That's equivalent to
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {equivalenciesFor(result.savedLbs).map((eq) => (
+                      <div
+                        key={eq.label}
+                        className="rounded-xl border border-border bg-background/40 p-3 text-center"
+                        title={eq.hint}
+                      >
+                        <div className="text-lg font-semibold text-intensity-low tabular-nums">{eq.value}</div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                          {eq.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
           </Card>
         )}
 
-        <PaloVerdeCallout />
+        <PaloVerdeCallout nuclearMW={grid?.breakdown.powerConsumptionBreakdown?.nuclear} />
       </div>
     </AppShell>
   );
