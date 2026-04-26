@@ -6,7 +6,7 @@ Drop your name in Owner when you grab one. Move between sections by editing this
 
 BACKLOG
 
-P0 — Kill the fake data
+P0 — Kill the fake data 
 - [ ] #8 Pick canonical brand name (GridWise vs GridDaddy) — touches title, AppShell, AuthPage, Onboarding, OG tags, README. Owner: —
 - [ ] #3 Insights "Nuclear contribution" card is hardcoded (48% / 28% / 15% / 5%) — derive from live grid breakdown. Owner: —
 - [ ] #4 Stop seeding 14 days of fake check-ins at onboarding (or hide behind explicit "Try with sample data" toggle). Owner: —
@@ -14,7 +14,7 @@ P0 — Kill the fake data
 - [ ] #2 /forecast recommendations are hardcoded strings — wire up the unused buildRecommendations() in intensity.ts. Owner: —
 - [ ] #1 Replace static HOURLY_INTENSITY with real forecast from Electricity Maps /carbon-intensity/forecast. Owner: —
 
-P1 — Branding / metadata cleanup
+P1 — Branding / metadata cleanup (JMV)
 - [ ] #6 Remove Lovable OG image + @Lovable Twitter handle from index.html. Owner: —
 - [ ] #7 Rewrite README.md (currently the Lovable template stub). Owner: —
 - [ ] #9 Replace default favicon, delete public/placeholder.svg. Owner: —
