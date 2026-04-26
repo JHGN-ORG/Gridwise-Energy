@@ -160,8 +160,14 @@ async function buildGridwiseContext(userId: string) {
       FROM profiles
       WHERE user_id = ${userId}
     `,
+    // TO_CHAR keeps the date as a YYYY-MM-DD string regardless of pg driver
+    // settings. Previously we relied on `typeof row.date === "string"` which
+    // wasn't always true — when @vercel/postgres returned a JS Date, the
+    // fallthrough JSON-stringified it as a UTC ISO timestamp, which was
+    // visibly one day off in Arizona evenings.
     sql`
-      SELECT date, usages, per_appliance, total_lbs, saved_lbs
+      SELECT TO_CHAR(date, 'YYYY-MM-DD') AS date,
+             usages, per_appliance, total_lbs, saved_lbs
       FROM check_ins
       WHERE user_id = ${userId}
       ORDER BY date DESC
@@ -169,8 +175,12 @@ async function buildGridwiseContext(userId: string) {
     `,
   ]);
 
+  const clock = getArizonaClock();
+  const todayDate = clock.date;
+  const yesterdayDate = isoDateOffset(todayDate, -1);
+
   const checkIns = checkInRows.map((row) => ({
-    date: typeof row.date === "string" ? row.date.slice(0, 10) : row.date,
+    date: String(row.date),
     usages: row.usages as Array<{ applianceId: string; startHour: number; endHour: number }>,
     perAppliance: row.per_appliance as Array<{ applianceId: string; lbs: number; optimalStart: number; optimalLbs: number }>,
     totalLbs: Number(row.total_lbs),
@@ -184,13 +194,19 @@ async function buildGridwiseContext(userId: string) {
 
   const leaderboardContext = await buildLeaderboardContext(userId, profileData);
 
+  // Pre-compute the human label so the model never has to infer it from raw
+  // dates. With this in place the model can quote `relativeLabel` directly.
+  const labelFor = (date: string) =>
+    date === todayDate ? "today" : date === yesterdayDate ? "yesterday" : `${daysBetween(date, todayDate)} days ago`;
+
   return {
-    reportClock: getArizonaClock(),
+    reportClock: clock,
     profile: profileData ?? null,
     dataWindow: {
       daysRequested: 30,
       checkInCount: checkIns.length,
       latestDate: latest?.date ?? null,
+      latestRelative: latest ? labelFor(latest.date) : null,
     },
     summary: {
       totalLbs: round(totalLbs),
@@ -198,25 +214,42 @@ async function buildGridwiseContext(userId: string) {
       averageDailyLbs: checkIns.length ? round(totalLbs / checkIns.length) : 0,
     },
     // Latest day kept in full so the model can answer "what did I do today" precisely.
-    latestCheckIn: latest,
+    latestCheckIn: latest && { ...latest, relativeLabel: labelFor(latest.date) },
     // Pre-aggregated per-appliance stats across the full 30-day window. Replaces
     // dumping 14 raw check-ins (≈ 4 KB of JSON) into the prompt every turn.
     applianceSummary: summarizeByAppliance(checkIns),
     // Last 7 days kept in compact form (no usages/perAppliance arrays).
     recentDaysCompact: checkIns.slice(0, 7).map((c) => ({
       date: c.date,
+      relativeLabel: labelFor(c.date),
       totalLbs: round(c.totalLbs),
       savedLbs: round(c.savedLbs),
     })),
     leaderboard: leaderboardContext,
     notes: [
+      `Today in Arizona is ${todayDate}. A check-in with that exact date is TODAY's check-in — never call it yesterday's.`,
+      "When describing when a check-in happened, prefer the pre-computed relativeLabel ('today' / 'yesterday' / 'N days ago') over re-deriving it from the date string.",
       "The AI-powered insight page is not available yet, so no official letter grade is included.",
-      "Use Arizona local time for all date-sensitive report answers.",
       "applianceSummary aggregates across the full 30-day window — use it for habit/trend questions.",
       "If the user asks about their rank or how to improve, use the leaderboard context to analyze the competitor ahead of them and suggest shifting similar appliances to catch up.",
       "IMPORTANT DISCLAIMER: Occasionally remind the user that you are an AI assistant and can make mistakes, especially regarding complex energy forecasting."
     ],
   };
+}
+
+// Pure date-string arithmetic on YYYY-MM-DD inputs. Avoids JS Date timezone
+// pitfalls — we operate on the calendar date directly.
+function isoDateOffset(date: string, days: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const t = Date.UTC(y, m - 1, d) + days * 86_400_000;
+  const out = new Date(t);
+  return `${out.getUTCFullYear()}-${String(out.getUTCMonth() + 1).padStart(2, "0")}-${String(out.getUTCDate()).padStart(2, "0")}`;
+}
+
+function daysBetween(earlier: string, later: string): number {
+  const [y1, m1, d1] = earlier.split("-").map(Number);
+  const [y2, m2, d2] = later.split("-").map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000);
 }
 
 // Aggregate per-appliance stats so the model gets habit-level signal without

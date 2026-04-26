@@ -14,17 +14,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await ensureSchema();
 
   if (req.method === "GET") {
+    // TO_CHAR forces a YYYY-MM-DD string regardless of pg-driver Date coercion.
+    // Without it, a JS Date returned for a DATE column was JSON-serialized as
+    // UTC ISO and shifted one day off in evening Arizona timezones.
     const date = typeof req.query.date === "string" ? req.query.date : null;
     if (date) {
       const { rows } = await sql`
-        SELECT date, usages, per_appliance, total_lbs, saved_lbs
+        SELECT TO_CHAR(date, 'YYYY-MM-DD') AS date,
+               usages, per_appliance, total_lbs, saved_lbs
         FROM check_ins WHERE user_id = ${userId} AND date = ${date}
       `;
       return res.status(200).json({ checkIn: rows[0] ?? null });
     }
     const { rows } = await sql`
-      SELECT date, usages, per_appliance, total_lbs, saved_lbs
-      FROM check_ins WHERE user_id = ${userId} ORDER BY date ASC
+      SELECT TO_CHAR(date, 'YYYY-MM-DD') AS date,
+             usages, per_appliance, total_lbs, saved_lbs
+      FROM check_ins WHERE user_id = ${userId} ORDER BY date DESC
     `;
     return res.status(200).json({ checkIns: rows });
   }

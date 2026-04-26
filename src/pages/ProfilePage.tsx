@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { APPLIANCE_MAP, HOME_SIZE_INFO, Profile, ARIZONA_CITIES, APPLIANCES, ApplianceId, ArizonaCity, HomeSize } from "@/lib/gridwise";
+import { APPLIANCE_MAP, CheckIn, HOME_SIZE_INFO, Profile, ARIZONA_CITIES, APPLIANCES, ApplianceId, ArizonaCity, HomeSize, formatRange } from "@/lib/gridwise";
 import { fetchCheckIns, fetchProfile, saveProfile } from "@/lib/repo";
 import { useAuth } from "@/components/gridwise/AuthProvider";
-import { Pencil, MapPin, Home, Clock, Zap, LogOut, Loader2, Save, X, Trophy } from "lucide-react";
+import { ChevronDown, Pencil, MapPin, Home, Clock, Zap, LogOut, Loader2, Save, X, Trophy, Leaf, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -18,7 +18,7 @@ export default function ProfilePage() {
   const { user, signOut, isDemo } = useAuth();
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [checkIns, setCheckIns] = useState<{ totalLbs: number; date: string }[]>([]);
+  const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
 
   // Edit states
   const [editName, setEditName] = useState("");
@@ -32,7 +32,7 @@ export default function ProfilePage() {
   const refresh = () => {
     if (!user) return;
     fetchProfile(user.id).then((r) => setProfile(r.profile));
-    fetchCheckIns(user.id).then((rows) => setCheckIns(rows.map((c) => ({ totalLbs: c.totalLbs, date: c.date }))));
+    fetchCheckIns(user.id).then(setCheckIns);
   };
 
   useEffect(refresh, [user]);
@@ -244,12 +244,14 @@ export default function ProfilePage() {
               <>
                 <div className="text-3xl font-bold mt-1 text-intensity-low">{bestDay.totalLbs.toFixed(2)}</div>
                 <div className="text-xs text-muted-foreground">
-                  lbs · {new Date(bestDay.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  lbs · {formatDate(bestDay.date)}
                 </div>
               </>
             ) : <div className="text-sm text-muted-foreground mt-2">No data yet.</div>}
           </Card>
         </div>
+
+        <CheckInHistory checkIns={checkIns} />
 
         <Button variant="ghost" className="w-full text-muted-foreground" onClick={signOut}>
           <LogOut className="h-4 w-4 mr-2" /> Sign out
@@ -257,6 +259,122 @@ export default function ProfilePage() {
       </div>
     </AppShell>
   );
+}
+
+// Expandable history list. Each row collapses to date + totals; clicking
+// expands to show per-appliance lbs, the time window the user ran it, and
+// the cleaner alternative window the optimizer would have picked.
+function CheckInHistory({ checkIns }: { checkIns: CheckIn[] }) {
+  const [openDate, setOpenDate] = useState<string | null>(null);
+
+  if (checkIns.length === 0) {
+    return (
+      <Card className="bg-card-gradient border-border p-5">
+        <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Check-in history</div>
+        <div className="text-sm text-muted-foreground">No check-ins yet — log one on the Dashboard.</div>
+      </Card>
+    );
+  }
+
+  // Already comes sorted DESC from the API. Cap at 30 to keep the page snappy.
+  const visible = checkIns.slice(0, 30);
+
+  return (
+    <Card className="bg-card-gradient border-border overflow-hidden">
+      <div className="p-4 border-b border-border bg-secondary/30">
+        <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Check-in history</div>
+        <div className="text-[11px] text-muted-foreground/80 mt-1">
+          {visible.length} most recent · tap a row for detail
+        </div>
+      </div>
+      <div className="divide-y divide-border">
+        {visible.map((ci) => {
+          const isOpen = openDate === ci.date;
+          return (
+            <div key={ci.date}>
+              <button
+                type="button"
+                onClick={() => setOpenDate(isOpen ? null : ci.date)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/10 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium">{formatDate(ci.date)}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {ci.usages.length} appliance{ci.usages.length === 1 ? "" : "s"} logged
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-semibold text-intensity-medium tabular-nums">
+                    {ci.totalLbs.toFixed(2)} <span className="text-xs text-muted-foreground">lbs</span>
+                  </div>
+                  {ci.savedLbs > 0.01 && (
+                    <div className="text-[11px] text-intensity-low mt-0.5">
+                      could save {ci.savedLbs.toFixed(2)} lbs
+                    </div>
+                  )}
+                </div>
+                <ChevronDown
+                  className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {isOpen && (
+                <div className="px-4 pb-4 pt-1 bg-background/40 space-y-2 animate-fade-in-up">
+                  {ci.perAppliance.map((p) => {
+                    const a = APPLIANCE_MAP[p.applianceId];
+                    const usage = ci.usages.find((u) => u.applianceId === p.applianceId);
+                    if (!usage || !a) return null;
+                    const dur = usage.endHour - usage.startHour;
+                    const isOptimal = usage.startHour === p.optimalStart;
+                    return (
+                      <div key={p.applianceId} className="rounded-xl border border-border bg-secondary/20 p-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{a.label}</span>
+                          <span className="text-intensity-high font-semibold tabular-nums">
+                            {p.lbs.toFixed(2)} lbs
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-1">
+                          Ran {formatRange(usage.startHour, usage.endHour)} ({dur}h)
+                        </div>
+                        <div className="text-[11px] mt-1.5">
+                          {isOptimal ? (
+                            <span className="inline-flex items-center gap-1 text-intensity-low">
+                              <Leaf className="h-3 w-3" /> Ran at the cleanest hour
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-muted-foreground">
+                              <TrendingDown className="h-3 w-3 text-intensity-low" />
+                              Cleaner at{" "}
+                              <span className="text-intensity-low font-medium">
+                                {formatRange(p.optimalStart, p.optimalStart + dur)}
+                              </span>
+                              {" "}({p.optimalLbs.toFixed(2)} lbs)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {ci.perAppliance.length === 0 && (
+                    <div className="text-xs text-muted-foreground">No per-appliance breakdown stored for this day.</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function formatDate(iso: string) {
+  // iso is YYYY-MM-DD (Arizona-local date string from the API). Parse as
+  // calendar parts to avoid the off-by-one that `new Date(iso)` causes when
+  // the user's local timezone is west of UTC.
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
+  return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
 const Info = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
