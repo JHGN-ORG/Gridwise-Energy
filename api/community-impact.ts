@@ -19,6 +19,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       FROM check_ins;
     `;
     const row = rows[0] ?? {};
+    // Same caching policy as /api/leaderboard — both are global aggregates.
+    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     return res.status(200).json({
       totalSaved: Number(row.totalSaved ?? 0),
       contributors: Number(row.contributors ?? 0),
