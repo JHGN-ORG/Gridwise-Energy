@@ -81,7 +81,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(204).end();
   }
 
-  res.setHeader("Allow", "GET, PUT, POST");
+  if (req.method === "DELETE") {
+    if (requestedDemo) return res.status(403).json({ error: "demo check-ins are read-only" });
+    const date = typeof req.query.date === "string" ? req.query.date : null;
+    if (date) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: "date must be YYYY-MM-DD" });
+      await sql`DELETE FROM check_ins WHERE user_id = ${userId} AND date = ${date}`;
+      return res.status(204).end();
+    }
+    await sql`DELETE FROM check_ins WHERE user_id = ${userId}`;
+    return res.status(204).end();
+  }
+
+  res.setHeader("Allow", "GET, PUT, POST, DELETE");
   return res.status(405).end();
 }
 

@@ -92,3 +92,11 @@ export async function fetchCheckIn(_userId: string, date: string): Promise<Check
 export async function upsertCheckIn(_userId: string, ci: CheckIn) {
   await apiFetch("/api/check-ins", { method: "PUT", body: JSON.stringify(checkInToBody(ci)) });
 }
+
+export async function deleteCheckIn(_userId: string, date: string) {
+  await apiFetch(`/api/check-ins?date=${encodeURIComponent(date)}`, { method: "DELETE" });
+}
+
+export async function deleteAllCheckIns(_userId: string) {
+  await apiFetch("/api/check-ins", { method: "DELETE" });
+}

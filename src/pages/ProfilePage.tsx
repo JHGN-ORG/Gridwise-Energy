@@ -5,10 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { APPLIANCE_MAP, CheckIn, HOME_SIZE_INFO, Profile, ARIZONA_CITIES, APPLIANCES, ApplianceId, ArizonaCity, HomeSize, formatRange } from "@/lib/gridwise";
-import { fetchCheckIns, fetchProfile, saveProfile } from "@/lib/repo";
+import { deleteAllCheckIns, deleteCheckIn, fetchCheckIns, fetchProfile, saveProfile } from "@/lib/repo";
 import { useAuth } from "@/components/gridwise/AuthProvider";
-import { ChevronDown, Pencil, MapPin, Home, Clock, Zap, LogOut, Loader2, Save, X, Trophy, Leaf, TrendingDown } from "lucide-react";
+import { ChevronDown, Pencil, MapPin, Home, Clock, Zap, LogOut, Loader2, Save, X, Trophy, Leaf, TrendingDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -81,6 +92,28 @@ export default function ProfilePage() {
     } catch (e) {
       toast.error("Could not update setting");
       refresh(); // revert on fail
+    }
+  };
+
+  const handleDeleteDay = async (date: string) => {
+    if (!user || isDemo) return;
+    try {
+      await deleteCheckIn(user.id, date);
+      setCheckIns((cur) => cur.filter((checkIn) => checkIn.date !== date));
+      toast.success("Check-in deleted");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete check-in");
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!user || isDemo) return;
+    try {
+      await deleteAllCheckIns(user.id);
+      setCheckIns([]);
+      toast.success("All check-in history cleared");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not clear check-in history");
     }
   };
 
@@ -251,7 +284,12 @@ export default function ProfilePage() {
           </Card>
         </div>
 
-        <CheckInHistory checkIns={checkIns} />
+        <CheckInHistory
+          checkIns={checkIns}
+          isDemo={isDemo}
+          onDeleteDay={handleDeleteDay}
+          onDeleteAll={handleDeleteAll}
+        />
 
         <Button variant="ghost" className="w-full text-muted-foreground" onClick={signOut}>
           <LogOut className="h-4 w-4 mr-2" /> Sign out
@@ -264,8 +302,40 @@ export default function ProfilePage() {
 // Expandable history list. Each row collapses to date + totals; clicking
 // expands to show per-appliance lbs, the time window the user ran it, and
 // the cleaner alternative window the optimizer would have picked.
-function CheckInHistory({ checkIns }: { checkIns: CheckIn[] }) {
+function CheckInHistory({
+  checkIns,
+  isDemo,
+  onDeleteDay,
+  onDeleteAll,
+}: {
+  checkIns: CheckIn[];
+  isDemo: boolean;
+  onDeleteDay: (date: string) => Promise<void>;
+  onDeleteAll: () => Promise<void>;
+}) {
   const [openDate, setOpenDate] = useState<string | null>(null);
+  const [deletingDate, setDeletingDate] = useState<string | null>(null);
+  const [deletingAll, setDeletingAll] = useState(false);
+
+  const deleteDay = async (date: string) => {
+    setDeletingDate(date);
+    try {
+      await onDeleteDay(date);
+      if (openDate === date) setOpenDate(null);
+    } finally {
+      setDeletingDate(null);
+    }
+  };
+
+  const deleteAll = async () => {
+    setDeletingAll(true);
+    try {
+      await onDeleteAll();
+      setOpenDate(null);
+    } finally {
+      setDeletingAll(false);
+    }
+  };
 
   if (checkIns.length === 0) {
     return (
@@ -281,11 +351,35 @@ function CheckInHistory({ checkIns }: { checkIns: CheckIn[] }) {
 
   return (
     <Card className="bg-card-gradient border-border overflow-hidden">
-      <div className="p-4 border-b border-border bg-secondary/30">
-        <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Check-in history</div>
-        <div className="text-[11px] text-muted-foreground/80 mt-1">
-          {visible.length} most recent · tap a row for detail
+      <div className="flex flex-col gap-3 border-b border-border bg-secondary/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Check-in history</div>
+          <div className="text-[11px] text-muted-foreground/80 mt-1">
+            {visible.length} most recent · tap a row for detail
+          </div>
         </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" size="sm" disabled={isDemo || deletingAll}>
+              {deletingAll ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-2 h-3.5 w-3.5" />}
+              Clear all
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Clear all check-in history?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This removes every logged check-in from your account. Your profile and account will stay intact.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={deleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Clear all data
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
       <div className="divide-y divide-border">
         {visible.map((ci) => {
@@ -319,6 +413,30 @@ function CheckInHistory({ checkIns }: { checkIns: CheckIn[] }) {
               </button>
               {isOpen && (
                 <div className="px-4 pb-4 pt-1 bg-background/40 space-y-2 animate-fade-in-up">
+                  <div className="flex justify-end">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" disabled={isDemo || deletingDate === ci.date}>
+                          {deletingDate === ci.date ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-2 h-3.5 w-3.5" />}
+                          Delete this day
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete {formatDate(ci.date)}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This removes the check-in and appliance breakdown for this day only.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteDay(ci.date)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete day
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                   {ci.perAppliance.map((p) => {
                     const a = APPLIANCE_MAP[p.applianceId];
                     const usage = ci.usages.find((u) => u.applianceId === p.applianceId);
