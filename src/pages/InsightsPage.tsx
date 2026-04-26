@@ -159,12 +159,22 @@ export default function InsightsPage() {
   );
 }
 
+// Hand-curated to show off what the chat can actually answer well —
+// hits applianceSummary, leaderboard context, time-shift recommendations,
+// and the equivalency framing baked into the system prompt.
+const SUGGESTED_PROMPTS = [
+  "What's my single worst habit and how do I fix it?",
+  "When should I run my dryer tomorrow?",
+  "How do I close the gap with the person ranked above me?",
+  "Translate this week's impact into something I can picture",
+];
+
 function InsightsChatCard() {
   const { messages, sendMessage, reset, loading, historyLoading, error } = useGridwiseChat();
   const [draft, setDraft] = useState("");
 
-  const submit = async () => {
-    const question = draft.trim();
+  const submit = async (text?: string) => {
+    const question = (text ?? draft).trim();
     if (!question || loading) return;
     setDraft("");
     await sendMessage(question);
@@ -196,11 +206,12 @@ function InsightsChatCard() {
           </div>
         ) : messages.length === 0 ? (
           <div className="space-y-2 py-2">
-            {["Why was my impact high?", "What should I change this week?", "Which appliance matters most?"].map((prompt) => (
+            <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Try asking</div>
+            {SUGGESTED_PROMPTS.map((prompt) => (
               <button
                 key={prompt}
                 type="button"
-                onClick={() => setDraft(prompt)}
+                onClick={() => submit(prompt)}
                 className="block w-full rounded-lg border border-border bg-secondary/30 px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
               >
                 {prompt}
@@ -231,6 +242,21 @@ function InsightsChatCard() {
 
       {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
 
+      {messages.length > 0 && !loading && !historyLoading && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {SUGGESTED_PROMPTS.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => submit(prompt)}
+              className="rounded-full border border-border bg-secondary/30 px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="mt-3 flex gap-2">
         <Textarea
           value={draft}
@@ -245,7 +271,7 @@ function InsightsChatCard() {
           className="min-h-11 resize-none"
           disabled={loading || historyLoading}
         />
-        <Button size="icon" onClick={submit} disabled={loading || historyLoading || !draft.trim()} className="h-11 w-11 shrink-0">
+        <Button size="icon" onClick={() => submit()} disabled={loading || historyLoading || !draft.trim()} className="h-11 w-11 shrink-0">
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
