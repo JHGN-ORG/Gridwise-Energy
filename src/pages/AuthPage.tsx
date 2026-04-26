@@ -3,7 +3,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useAuth } from "@/components/gridwise/AuthProvider";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Zap } from "lucide-react";
+import { Trophy, Zap } from "lucide-react";
 
 export default function AuthPage() {
   const { session, loading } = useAuth();
@@ -33,6 +33,11 @@ export default function AuthPage() {
           <div className="space-y-3">
             <Button className="w-full" onClick={login}>Log in</Button>
             <Button variant="outline" className="w-full" onClick={signup}>Sign up</Button>
+            <Button variant="secondary" className="w-full" asChild>
+              <Link to="/demo?demoUserId=demo:default">
+                <Trophy className="mr-2 h-4 w-4" /> Try demo account
+              </Link>
+            </Button>
           </div>
         </Card>
         <p className="mt-4 text-center text-xs text-muted-foreground">
