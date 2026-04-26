@@ -25,7 +25,10 @@ export function forecastCarbonIntensity(history: CarbonHistoryPoint[], hours = 2
     .filter((point) => Number.isFinite(point.y) && !Number.isNaN(point.date.getTime()))
     .slice(-72);
 
-  if (observed.length < 6) return null;
+  // Need at least 24 hours of observations before a daily-seasonality model is
+  // even worth fitting — anything less than that and the sin/cos features
+  // haven't seen a full diurnal cycle, so the fit is meaningless.
+  if (observed.length < 24) return null;
 
   const firstMs = observed[0].date.getTime();
   const rows = observed.map((point) => {
@@ -115,9 +118,12 @@ function coefficientOfDetermination(actual: number[], predicted: number[]) {
   return clamp(1 - ssRes / ssTot, 0, 1);
 }
 
+// Tighter than before: previously "high" was awarded at r²≥0.55 (45% unexplained
+// variance), which we were displaying to users as a confidence label. Bumped so
+// the labels actually mean what they say.
 function confidenceFor(samples: number, r2: number): "low" | "medium" | "high" {
-  if (samples >= 48 && r2 >= 0.55) return "high";
-  if (samples >= 24 && r2 >= 0.25) return "medium";
+  if (samples >= 60 && r2 >= 0.70) return "high";
+  if (samples >= 36 && r2 >= 0.50) return "medium";
   return "low";
 }
 

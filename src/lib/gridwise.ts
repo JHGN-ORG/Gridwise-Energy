@@ -104,11 +104,15 @@ export function baselineDailyLbs(size: HomeSize, intensityCurve = HOURLY_INTENSI
   return totalGrams * G_PER_KWH_TO_LB_PER_KWH;
 }
 
+// Treats endHour <= startHour as a run that wraps past midnight (e.g. 22→2
+// means a 4-hour run ending at 02:00 the next day). The hour-of-day index is
+// always taken mod 24 against the intensity curve.
 export function lbsForRun(watts: number, startHour: number, endHour: number, intensityCurve = HOURLY_INTENSITY): number {
-  const hours = Math.max(0, endHour - startHour);
-  if (hours === 0) return 0;
+  const normalizedEnd = endHour > startHour ? endHour : endHour + 24;
+  const hours = normalizedEnd - startHour;
+  if (hours <= 0) return 0;
   let totalGrams = 0;
-  for (let h = startHour; h < endHour; h++) {
+  for (let h = startHour; h < normalizedEnd; h++) {
     const idx = ((h % 24) + 24) % 24;
     totalGrams += (watts / 1000) * intensityCurve[idx];
   }
