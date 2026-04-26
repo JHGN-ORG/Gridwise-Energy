@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Trophy, Loader2, Target, TrendingUp } from "lucide-react";
 import { useAuth } from "@/components/gridwise/AuthProvider";
 import { Profile } from "@/lib/gridwise";
+import { equivalenciesFor } from "@/lib/equivalencies";
 
 interface LeaderboardEntry {
   rank: number;
@@ -72,15 +73,38 @@ export default function LeaderboardPage({ profile }: { profile: Profile }) {
       <div className="space-y-6">
         
         {/* Community Stat Banner */}
-        <Card className="bg-card-gradient border-border p-6 flex flex-col items-center text-center">
-          <Target className="h-8 w-8 text-intensity-low mb-3" />
-          <h2 className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Total Community Savings</h2>
-          <div className="text-4xl font-bold mt-2 text-intensity-low">
-            {data ? data.communityTotal.toFixed(1) : "---"} <span className="text-lg text-muted-foreground">lbs CO₂</span>
+        <Card className="bg-card-gradient border-border p-6">
+          <div className="flex flex-col items-center text-center">
+            <Target className="h-8 w-8 text-intensity-low mb-3" />
+            <h2 className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Total Community Savings</h2>
+            <div className="text-4xl font-bold mt-2 text-intensity-low">
+              {data ? data.communityTotal.toFixed(1) : "---"} <span className="text-lg text-muted-foreground">lbs CO₂</span>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground max-w-sm">
+              That's how much carbon emissions our community has prevented by shifting usage away from gas peaker plants.
+            </p>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground max-w-sm">
-            That's how much carbon emissions our community has prevented by shifting usage away from gas peaker plants!
-          </p>
+          {data && data.communityTotal > 0 && (
+            <div className="mt-5 pt-5 border-t border-border">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-3 text-center">
+                Real-world equivalent
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {equivalenciesFor(data.communityTotal).map((eq) => (
+                  <div
+                    key={eq.label}
+                    className="rounded-xl border border-border bg-background/40 p-3 text-center"
+                    title={eq.hint}
+                  >
+                    <div className="text-lg font-semibold text-intensity-low tabular-nums">{eq.value}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                      {eq.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* Leaderboard List */}

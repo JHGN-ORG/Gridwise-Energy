@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/gridwise/AppShell";
+import { CommunityImpactStrip } from "@/components/gridwise/CommunityImpactStrip";
 import { PaloVerdeCallout } from "@/components/gridwise/PaloVerdeCallout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -150,6 +151,8 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
   return (
     <AppShell title={`Hi, ${profile.name.split(" ")[0]}`} subtitle={`${profile.city}, AZ · ${dateLabel}`}>
       <div className="space-y-6">
+        <CommunityImpactStrip />
+
         {/* Live grid header */}
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2 bg-card-gradient border-border p-6">
