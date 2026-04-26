@@ -28,6 +28,14 @@ P1 — Auth & API hardening
 - [ ] #16 Lock down /api/grid-intensity — require auth + cache by zone (5–15 min). Owner: —
 - [ ] #17 Cache geocoding — Nominatim has a 1 req/sec TOS; hardcode the 5 AZ cities or store lat/lon. Owner: —
 
+🤖 AI/ML Track (hackathon hero features — Track 01: AI for Sustainability)
+- [ ] AI-1 "Grid Coach" chat — Anthropic Claude over user profile + recent check-ins + 24h forecast (with prompt caching). New /api/coach route + chat UI on Dashboard. Owner: —
+- [ ] AI-2 Real carbon-intensity forecast model — train on Electricity Maps history (60d hourly) for user's zone, predict next 48h. Replaces hardcoded HOURLY_INTENSITY (kills tasks #1, #5). Serve from /api/forecast, refresh nightly via Vercel cron. Report MAE on held-out set. Owner: —
+- [ ] AI-3 Personalized shift recommender — combines AI-2 forecast with the user's own check-in history to suggest specific appliance shifts ("HVAC 17:00 → 14:00, save 2.4 lbs"). Persist suggestions, track lbs-saved per user. Owner: —
+- [ ] AI-4 Anomaly detection on user check-ins — flag days where user's emissions spike vs their own rolling baseline (z-score). Inline insight card with likely cause from check-in usages. Owner: —
+- [ ] AI-5 Aggregate demand-response simulator — landing/marketing page: "If N users shifted EV charging to nuclear hours, we'd displace X MWh of gas peakers, Y tons CO₂/yr." Uses EIA/Electricity Maps real numbers. Sells scalability story. Owner: —
+- [ ] AI-6 Real Palo Verde / nuclear share — replace the hardcoded 48% in InsightsPage with actual zone breakdown. When a user's "saved lbs" land in nuclear-dominant hours, attribute them. Owner: —
+
 P2 — Cleanup & quality
 - [ ] #15 Drop unused _userId arg from all repo.ts functions and callers. Owner: —
 - [ ] #18 Real migration story instead of ensureSchema() running DDL on every cold start. Owner: —
