@@ -149,7 +149,7 @@ function sanitizeHistory(history: unknown): GeminiChatMessage[] {
 async function buildGridwiseContext(userId: string) {
   const [{ rows: profileRows }, { rows: checkInRows }] = await Promise.all([
     sql`
-      SELECT name, city, home_size, appliances, wake_hour, sleep_hour, onboarded, created_at
+      SELECT name, city, home_size, appliances, wake_hour, sleep_hour, onboarded, leaderboard_opt_in, created_at
       FROM profiles
       WHERE user_id = ${userId}
     `,
@@ -234,7 +234,8 @@ async function buildGridwiseContext(userId: string) {
     notes: [
       "The AI-powered insight page is not available yet, so no official letter grade is included.",
       "Use Arizona local time for all date-sensitive report answers.",
-      "If the user asks about their rank or how to improve, use the leaderboard context to analyze the competitor ahead of them and suggest shifting similar appliances to catch up."
+      "If the user asks about their rank or how to improve, use the leaderboard context to analyze the competitor ahead of them and suggest shifting similar appliances to catch up.",
+      "IMPORTANT DISCLAIMER: Occasionally remind the user that you are an AI assistant and can make mistakes, especially regarding complex energy forecasting."
     ],
   };
 }
