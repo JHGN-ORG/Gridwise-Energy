@@ -1,7 +1,7 @@
-# Welcome to your Lovable project
+Help me plan for the second part of improving the forecast page:
 
-TODO: Document your project here
+Insights Page → Chatbot:
+The chatbot should have full context of the user’s profile and be able to interact with user questions and their data in real time.
 
-insight page => Chatbot: have all context of profile and interact with user questions and data seeing
-
-forcast (JMB and GSW)=> Insights: AI powered insights, getting all this data about user and need to feed to AI that analysis and tell you where to improve but not interactive with user (like a summery). 
+Forecast (JMB and GSW) → Insights:
+This section will provide AI-powered insights. It will take all available user data, analyze it, and suggest areas for improvement. Unlike the chatbot, this is not interactive—it functions more like a summary or report.
