@@ -77,6 +77,12 @@ export async function generateGeminiChatReply(options: {
 
   const data = (await res.json()) as GeminiResponse;
   const reply = data.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("").trim();
+  console.log("[gemini raw answer]", {
+    model,
+    raw: reply,
+    candidateCount: data.candidates?.length ?? 0,
+    promptFeedback: data.promptFeedback ?? null,
+  });
   if (!reply) throw new Error("Gemini returned an empty response");
   return reply;
 }
