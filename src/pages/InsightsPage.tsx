@@ -217,7 +217,7 @@ function InsightsChatCard() {
                   : "mr-auto max-w-[92%] border border-border bg-background/60 text-foreground"
               }`}
             >
-              {message.content}
+              {message.role === "assistant" ? <MarkdownMessage content={message.content} /> : message.content}
             </div>
           ))
         )}
@@ -251,6 +251,113 @@ function InsightsChatCard() {
       </div>
     </Card>
   );
+}
+
+function MarkdownMessage({ content }: { content: string }) {
+  const blocks = parseMarkdownBlocks(content);
+  return (
+    <div className="space-y-2">
+      {blocks.map((block, index) => {
+        if (block.type === "ul") {
+          return (
+            <ul key={index} className="ml-4 list-disc space-y-1">
+              {block.items.map((item, itemIndex) => <li key={itemIndex}>{renderInlineMarkdown(item)}</li>)}
+            </ul>
+          );
+        }
+        if (block.type === "ol") {
+          return (
+            <ol key={index} className="ml-4 list-decimal space-y-1">
+              {block.items.map((item, itemIndex) => <li key={itemIndex}>{renderInlineMarkdown(item)}</li>)}
+            </ol>
+          );
+        }
+        return <p key={index}>{renderInlineMarkdown(block.text)}</p>;
+      })}
+    </div>
+  );
+}
+
+type MarkdownBlock =
+  | { type: "p"; text: string }
+  | { type: "ul"; items: string[] }
+  | { type: "ol"; items: string[] };
+
+function parseMarkdownBlocks(content: string): MarkdownBlock[] {
+  const blocks: MarkdownBlock[] = [];
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
+  let paragraph: string[] = [];
+  let list: { type: "ul" | "ol"; items: string[] } | null = null;
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    blocks.push({ type: "p", text: paragraph.join(" ") });
+    paragraph = [];
+  };
+  const flushList = () => {
+    if (!list) return;
+    blocks.push(list);
+    list = null;
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    const bullet = trimmed.match(/^[-*]\s+(.+)$/);
+    const numbered = trimmed.match(/^\d+[.)]\s+(.+)$/);
+    if (bullet || numbered) {
+      flushParagraph();
+      const type = bullet ? "ul" : "ol";
+      if (!list || list.type !== type) {
+        flushList();
+        list = { type, items: [] };
+      }
+      list.items.push((bullet?.[1] ?? numbered?.[1] ?? "").trim());
+      continue;
+    }
+
+    flushList();
+    paragraph.push(trimmed);
+  }
+
+  flushParagraph();
+  flushList();
+  return blocks.length ? blocks : [{ type: "p", text: content }];
+}
+
+function renderInlineMarkdown(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https?:\/\/[^)\s]+\))/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text))) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    const token = match[0];
+    if (token.startsWith("**")) {
+      nodes.push(<strong key={nodes.length}>{token.slice(2, -2)}</strong>);
+    } else if (token.startsWith("`")) {
+      nodes.push(<code key={nodes.length} className="rounded bg-secondary/60 px-1 py-0.5 text-[0.85em]">{token.slice(1, -1)}</code>);
+    } else {
+      const link = token.match(/^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/);
+      if (link) {
+        nodes.push(
+          <a key={nodes.length} href={link[2]} target="_blank" rel="noreferrer" className="text-primary underline-offset-2 hover:underline">
+            {link[1]}
+          </a>,
+        );
+      }
+    }
+    lastIndex = pattern.lastIndex;
+  }
+
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes;
 }
 
 function computeWorstHabit(checkIns: CheckIn[]) {
