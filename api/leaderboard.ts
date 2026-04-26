@@ -18,6 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         p.city,
         COALESCE((SELECT SUM(saved_lbs) FROM check_ins c WHERE c.user_id = p.user_id), 0) AS "totalSaved"
       FROM profiles p
+      WHERE p.leaderboard_opt_in = true
       ORDER BY "totalSaved" DESC, p.created_at ASC
       LIMIT 100;
     `;

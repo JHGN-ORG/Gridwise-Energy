@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === "GET") {
     const { rows } = await sql`
-      SELECT user_id, name, city, home_size, appliances, wake_hour, sleep_hour, onboarded, created_at
+      SELECT user_id, name, city, home_size, appliances, wake_hour, sleep_hour, onboarded, leaderboard_opt_in, created_at
       FROM profiles WHERE user_id = ${userId}
     `;
     return res.status(200).json({ profile: rows[0] ?? null });
@@ -25,8 +25,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (requestedDemo) return res.status(403).json({ error: "demo profiles are read-only" });
     const b = req.body ?? {};
     const onboarded = b.onboarded !== false;
+    const optIn = b.leaderboard_opt_in !== false; // defaults to true
     await sql`
-      INSERT INTO profiles (user_id, name, city, home_size, appliances, wake_hour, sleep_hour, onboarded)
+      INSERT INTO profiles (user_id, name, city, home_size, appliances, wake_hour, sleep_hour, onboarded, leaderboard_opt_in)
       VALUES (
         ${userId},
         ${b.name ?? ""},
@@ -35,7 +36,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ${JSON.stringify(b.appliances ?? [])}::jsonb,
         ${b.wake_hour ?? 7},
         ${b.sleep_hour ?? 23},
-        ${onboarded}
+        ${onboarded},
+        ${optIn}
       )
       ON CONFLICT (user_id) DO UPDATE SET
         name = EXCLUDED.name,
@@ -45,6 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         wake_hour = EXCLUDED.wake_hour,
         sleep_hour = EXCLUDED.sleep_hour,
         onboarded = EXCLUDED.onboarded,
+        leaderboard_opt_in = EXCLUDED.leaderboard_opt_in,
         updated_at = now()
     `;
     return res.status(204).end();

@@ -19,6 +19,10 @@ export async function ensureSchema() {
     );
   `;
   await sql`
+    ALTER TABLE profiles 
+    ADD COLUMN IF NOT EXISTS leaderboard_opt_in BOOLEAN NOT NULL DEFAULT true;
+  `;
+  await sql`
     CREATE TABLE IF NOT EXISTS check_ins (
       user_id        TEXT NOT NULL,
       date           DATE NOT NULL,

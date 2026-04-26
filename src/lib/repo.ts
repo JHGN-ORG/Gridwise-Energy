@@ -16,6 +16,7 @@ interface ProfileRow {
   wake_hour: number;
   sleep_hour: number;
   onboarded: boolean;
+  leaderboard_opt_in: boolean;
   created_at: string;
 }
 
@@ -34,6 +35,7 @@ const rowToProfile = (r: ProfileRow): Profile => ({
   appliances: Array.isArray(r.appliances) ? r.appliances : [],
   wakeHour: r.wake_hour,
   sleepHour: r.sleep_hour,
+  leaderboardOptIn: r.leaderboard_opt_in ?? true,
   joinedAt: r.created_at,
 });
 
@@ -52,6 +54,7 @@ const profileToBody = (p: Profile, onboarded: boolean) => ({
   appliances: p.appliances,
   wake_hour: p.wakeHour,
   sleep_hour: p.sleepHour,
+  leaderboard_opt_in: p.leaderboardOptIn,
   onboarded,
 });
 

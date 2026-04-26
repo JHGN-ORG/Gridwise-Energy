@@ -32,6 +32,7 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
   const [appliances, setAppliances] = useState<ApplianceId[]>(initial?.appliances ?? ["hvac", "dishwasher", "washer", "dryer"]);
   const [wakeHour, setWakeHour] = useState<number>(initial?.wakeHour ?? 7);
   const [sleepHour, setSleepHour] = useState<number>(initial?.sleepHour ?? 23);
+  const [leaderboardOptIn, setLeaderboardOptIn] = useState<boolean>(initial?.leaderboardOptIn ?? true);
 
   const toggleAppliance = (id: ApplianceId) =>
     setAppliances((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
@@ -46,6 +47,7 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
       appliances,
       wakeHour,
       sleepHour,
+      leaderboardOptIn,
       joinedAt: initial?.joinedAt ?? new Date().toISOString(),
     };
     try {
@@ -157,6 +159,20 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
               <SelectContent>{HOURS.map((h) => <SelectItem key={h} value={String(h)}>{formatHour(h)}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
+
+          <div className="pt-4 border-t border-border">
+            <Field label="Community Leaderboard">
+              <label className="flex items-start gap-3 rounded-xl border border-border bg-secondary/30 p-3 cursor-pointer hover:border-muted-foreground/40 transition-colors">
+                <Checkbox checked={leaderboardOptIn} onCheckedChange={(v) => setLeaderboardOptIn(!!v)} className="mt-0.5" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Participate in Rank</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+                    Show your anonymous username and CO₂ savings on the community leaderboard.
+                  </div>
+                </div>
+              </label>
+            </Field>
+          </div>
         </div>
       ),
     },

@@ -49,6 +49,7 @@ export interface Profile {
   appliances: ApplianceId[];
   wakeHour: number;
   sleepHour: number;
+  leaderboardOptIn: boolean;
   joinedAt: string;
 }
 

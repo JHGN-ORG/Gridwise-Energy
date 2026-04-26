@@ -174,9 +174,50 @@ async function buildGridwiseContext(userId: string) {
   const savedLbs = checkIns.reduce((sum, row) => sum + row.savedLbs, 0);
   const latest = checkIns[0] ?? null;
 
+  // Add leaderboard context
+  const { rows: leaderboardRows } = await sql`
+    SELECT p.user_id, p.name, p.leaderboard_opt_in, COALESCE((SELECT SUM(saved_lbs) FROM check_ins c WHERE c.user_id = p.user_id), 0) AS total_saved
+    FROM profiles p
+    WHERE p.leaderboard_opt_in = true
+    ORDER BY total_saved DESC, p.created_at ASC
+  `;
+  
+  const myIndex = leaderboardRows.findIndex((r) => r.user_id === userId);
+  let leaderboardContext = null;
+  
+  const profileData = profileRows[0];
+  if (profileData?.leaderboard_opt_in && myIndex !== -1) {
+    const myRank = myIndex + 1;
+    let targetCompetitor = null;
+    
+    if (myIndex > 0) {
+      const target = leaderboardRows[myIndex - 1];
+      // Fetch target's recent usage to give specific advice
+      const { rows: targetCheckIns } = await sql`
+        SELECT usages FROM check_ins WHERE user_id = ${target.user_id} ORDER BY date DESC LIMIT 3
+      `;
+      const recentUsages = targetCheckIns.flatMap(r => r.usages).map(u => u.applianceId);
+      targetCompetitor = {
+        name: target.name,
+        rank: myRank - 1,
+        totalSavedLbs: Number(target.total_saved),
+        recentlyShiftedAppliances: Array.from(new Set(recentUsages))
+      };
+    }
+    
+    leaderboardContext = {
+      myRank,
+      totalOptedInUsers: leaderboardRows.length,
+      myTotalSavedLbs: Number(leaderboardRows[myIndex].total_saved),
+      targetCompetitor
+    };
+  } else if (!profileData?.leaderboard_opt_in) {
+    leaderboardContext = { status: "User has explicitly opted out of the leaderboard. Suggest they opt back in via their profile page to see their rank." };
+  }
+
   return {
     reportClock: getArizonaClock(),
-    profile: profileRows[0] ?? null,
+    profile: profileData ?? null,
     dataWindow: {
       daysRequested: 30,
       checkInCount: checkIns.length,
@@ -189,9 +230,11 @@ async function buildGridwiseContext(userId: string) {
     },
     latestCheckIn: latest,
     recentCheckIns: checkIns.slice(0, 14),
+    leaderboard: leaderboardContext,
     notes: [
       "The AI-powered insight page is not available yet, so no official letter grade is included.",
       "Use Arizona local time for all date-sensitive report answers.",
+      "If the user asks about their rank or how to improve, use the leaderboard context to analyze the competitor ahead of them and suggest shifting similar appliances to catch up."
     ],
   };
 }
