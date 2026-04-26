@@ -28,6 +28,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     `;
     const communityTotal = communityTotalRow[0]?.total ?? 0;
 
+    // Public, user-agnostic data — safe to cache at the edge for a minute.
+    // SWR allows the next 2 minutes to serve cached while we revalidate.
+    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     return res.status(200).json({
       leaderboard: leaderboard.map((r, i) => ({
         rank: i + 1,

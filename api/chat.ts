@@ -164,8 +164,8 @@ async function buildGridwiseContext(userId: string) {
 
   const checkIns = checkInRows.map((row) => ({
     date: typeof row.date === "string" ? row.date.slice(0, 10) : row.date,
-    usages: row.usages,
-    perAppliance: row.per_appliance,
+    usages: row.usages as Array<{ applianceId: string; startHour: number; endHour: number }>,
+    perAppliance: row.per_appliance as Array<{ applianceId: string; lbs: number; optimalStart: number; optimalLbs: number }>,
     totalLbs: Number(row.total_lbs),
     savedLbs: Number(row.saved_lbs),
   }));
@@ -173,47 +173,9 @@ async function buildGridwiseContext(userId: string) {
   const totalLbs = checkIns.reduce((sum, row) => sum + row.totalLbs, 0);
   const savedLbs = checkIns.reduce((sum, row) => sum + row.savedLbs, 0);
   const latest = checkIns[0] ?? null;
-
-  // Add leaderboard context
-  const { rows: leaderboardRows } = await sql`
-    SELECT p.user_id, p.name, p.leaderboard_opt_in, COALESCE((SELECT SUM(saved_lbs) FROM check_ins c WHERE c.user_id = p.user_id), 0) AS total_saved
-    FROM profiles p
-    WHERE p.leaderboard_opt_in = true
-    ORDER BY total_saved DESC, p.created_at ASC
-  `;
-  
-  const myIndex = leaderboardRows.findIndex((r) => r.user_id === userId);
-  let leaderboardContext = null;
-  
   const profileData = profileRows[0];
-  if (profileData?.leaderboard_opt_in && myIndex !== -1) {
-    const myRank = myIndex + 1;
-    let targetCompetitor = null;
-    
-    if (myIndex > 0) {
-      const target = leaderboardRows[myIndex - 1];
-      // Fetch target's recent usage to give specific advice
-      const { rows: targetCheckIns } = await sql`
-        SELECT usages FROM check_ins WHERE user_id = ${target.user_id} ORDER BY date DESC LIMIT 3
-      `;
-      const recentUsages = targetCheckIns.flatMap(r => r.usages).map(u => u.applianceId);
-      targetCompetitor = {
-        name: target.name,
-        rank: myRank - 1,
-        totalSavedLbs: Number(target.total_saved),
-        recentlyShiftedAppliances: Array.from(new Set(recentUsages))
-      };
-    }
-    
-    leaderboardContext = {
-      myRank,
-      totalOptedInUsers: leaderboardRows.length,
-      myTotalSavedLbs: Number(leaderboardRows[myIndex].total_saved),
-      targetCompetitor
-    };
-  } else if (!profileData?.leaderboard_opt_in) {
-    leaderboardContext = { status: "User has explicitly opted out of the leaderboard. Suggest they opt back in via their profile page to see their rank." };
-  }
+
+  const leaderboardContext = await buildLeaderboardContext(userId, profileData);
 
   return {
     reportClock: getArizonaClock(),
@@ -228,15 +190,119 @@ async function buildGridwiseContext(userId: string) {
       savedLbs: round(savedLbs),
       averageDailyLbs: checkIns.length ? round(totalLbs / checkIns.length) : 0,
     },
+    // Latest day kept in full so the model can answer "what did I do today" precisely.
     latestCheckIn: latest,
-    recentCheckIns: checkIns.slice(0, 14),
+    // Pre-aggregated per-appliance stats across the full 30-day window. Replaces
+    // dumping 14 raw check-ins (≈ 4 KB of JSON) into the prompt every turn.
+    applianceSummary: summarizeByAppliance(checkIns),
+    // Last 7 days kept in compact form (no usages/perAppliance arrays).
+    recentDaysCompact: checkIns.slice(0, 7).map((c) => ({
+      date: c.date,
+      totalLbs: round(c.totalLbs),
+      savedLbs: round(c.savedLbs),
+    })),
     leaderboard: leaderboardContext,
     notes: [
       "The AI-powered insight page is not available yet, so no official letter grade is included.",
       "Use Arizona local time for all date-sensitive report answers.",
+      "applianceSummary aggregates across the full 30-day window — use it for habit/trend questions.",
       "If the user asks about their rank or how to improve, use the leaderboard context to analyze the competitor ahead of them and suggest shifting similar appliances to catch up.",
       "IMPORTANT DISCLAIMER: Occasionally remind the user that you are an AI assistant and can make mistakes, especially regarding complex energy forecasting."
     ],
+  };
+}
+
+// Aggregate per-appliance stats so the model gets habit-level signal without
+// having to scan a full check-in array. Cuts prompt size and gives the LLM
+// pre-computed answers to most "which appliance is my worst" questions.
+function summarizeByAppliance(checkIns: Array<{
+  perAppliance: Array<{ applianceId: string; lbs: number; optimalLbs: number }>;
+}>) {
+  const buckets = new Map<string, { runs: number; totalLbs: number; totalOptimalLbs: number }>();
+  for (const ci of checkIns) {
+    for (const p of ci.perAppliance ?? []) {
+      const bucket = buckets.get(p.applianceId) ?? { runs: 0, totalLbs: 0, totalOptimalLbs: 0 };
+      bucket.runs += 1;
+      bucket.totalLbs += Number(p.lbs) || 0;
+      bucket.totalOptimalLbs += Number(p.optimalLbs) || 0;
+      buckets.set(p.applianceId, bucket);
+    }
+  }
+  return Array.from(buckets.entries())
+    .map(([applianceId, b]) => ({
+      applianceId,
+      runs: b.runs,
+      totalLbs: round(b.totalLbs),
+      avgLbsPerRun: b.runs ? round(b.totalLbs / b.runs) : 0,
+      avgSavingsOpportunityLbs: b.runs ? round((b.totalLbs - b.totalOptimalLbs) / b.runs) : 0,
+    }))
+    .sort((a, b) => b.totalLbs - a.totalLbs);
+}
+
+// Targeted leaderboard lookup: returns only the user's own rank/total and the
+// single competitor immediately above them. Replaces the previous full-board
+// scan that ran on every chat message.
+async function buildLeaderboardContext(userId: string, profileData: { leaderboard_opt_in?: boolean } | undefined) {
+  if (!profileData) return null;
+  if (!profileData.leaderboard_opt_in) {
+    return { status: "User has explicitly opted out of the leaderboard. Suggest they opt back in via their profile page to see their rank." };
+  }
+
+  const { rows } = await sql`
+    WITH totals AS (
+      SELECT p.user_id, p.name, p.created_at,
+             COALESCE(SUM(c.saved_lbs), 0) AS total_saved
+      FROM profiles p
+      LEFT JOIN check_ins c ON c.user_id = p.user_id
+      WHERE p.leaderboard_opt_in = true
+      GROUP BY p.user_id, p.name, p.created_at
+    ),
+    ranked AS (
+      SELECT *, ROW_NUMBER() OVER (ORDER BY total_saved DESC, created_at ASC) AS rnk,
+             COUNT(*) OVER () AS total_users
+      FROM totals
+    ),
+    me AS (
+      SELECT rnk, total_saved, total_users FROM ranked WHERE user_id = ${userId}
+    )
+    SELECT r.user_id, r.name, r.total_saved, r.rnk, r.total_users,
+           CASE WHEN r.user_id = ${userId} THEN 'me' ELSE 'target' END AS role
+    FROM ranked r, me
+    WHERE r.user_id = ${userId} OR r.rnk = me.rnk - 1
+  `;
+
+  const meRow = rows.find((r) => r.role === "me");
+  if (!meRow) return null;
+
+  const targetRow = rows.find((r) => r.role === "target");
+  let targetCompetitor: {
+    name: string;
+    rank: number;
+    totalSavedLbs: number;
+    recentlyShiftedAppliances: string[];
+  } | null = null;
+
+  if (targetRow) {
+    // Single follow-up query for the target's recent usage signals. O(3 rows).
+    const { rows: targetCheckIns } = await sql`
+      SELECT usages FROM check_ins WHERE user_id = ${String(targetRow.user_id)} ORDER BY date DESC LIMIT 3
+    `;
+    const recentUsages = targetCheckIns
+      .flatMap((r) => (r.usages as Array<{ applianceId: string }>) ?? [])
+      .map((u) => u.applianceId);
+    targetCompetitor = {
+      name: String(targetRow.name),
+      rank: Number(targetRow.rnk),
+      totalSavedLbs: Number(targetRow.total_saved),
+      recentlyShiftedAppliances: Array.from(new Set(recentUsages)),
+    };
+  }
+
+  return {
+    myRank: Number(meRow.rnk),
+    totalOptedInUsers: Number(meRow.total_users),
+    myTotalSavedLbs: Number(meRow.total_saved),
+    targetCompetitor,
   };
 }
 
