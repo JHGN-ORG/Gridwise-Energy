@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="GridDaddy crown favicon">
+  <rect width="64" height="64" rx="14" fill="#081014"/>
+  <circle cx="32" cy="34" r="20" fill="#10251f" stroke="#28624a" stroke-width="3"/>
+  <path d="M18 29 26 20l6 10 6-10 8 9v14H18V29Z" fill="#f6c84f" stroke="#fff1a6" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M24 50h16" stroke="#33f27c" stroke-width="4" stroke-linecap="round"/>
+  <path d="M32 28 24 39h7l-2 9 10-14h-7l0-6Z" fill="#33f27c"/>
+</svg>

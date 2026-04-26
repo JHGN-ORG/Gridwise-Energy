@@ -1,3 +1,5 @@
+import { getActiveDemoUserId } from "@/lib/demo-session";
+
 type TokenGetter = () => Promise<string>;
 
 let getToken: TokenGetter | null = null;
@@ -7,6 +9,18 @@ export function setTokenGetter(fn: TokenGetter | null) {
 }
 
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const demoUserId = getDemoUserId();
+  if (demoUserId && !path.startsWith("/api/admin-demo")) {
+    const headers = new Headers(init.headers);
+    if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+    const res = await fetch(withDemoUser(path, demoUserId), { ...init, headers });
+    if (!res.ok && res.status !== 204) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${res.status} ${path}: ${text}`);
+    }
+    return res;
+  }
+
   if (!getToken) throw new Error("auth not ready");
   const token = await getToken();
   const headers = new Headers(init.headers);
@@ -18,4 +32,14 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
     throw new Error(`${res.status} ${path}: ${text}`);
   }
   return res;
+}
+
+function getDemoUserId() {
+  return getActiveDemoUserId();
+}
+
+function withDemoUser(path: string, demoUserId: string) {
+  if (path.includes("demoUserId=")) return path;
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}demoUserId=${encodeURIComponent(demoUserId)}`;
 }

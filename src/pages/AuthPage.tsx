@@ -3,7 +3,11 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useAuth } from "@/components/gridwise/AuthProvider";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+<<<<<<< HEAD
 import { Trophy, Zap } from "lucide-react";
+=======
+import { Trophy } from "lucide-react";
+>>>>>>> 9bb5c2fe44b87d645348614f7df38ccb3617c860
 import { startDemoSession } from "@/lib/demo-session";
 
 export default function AuthPage() {
@@ -20,11 +24,16 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-md">
+<<<<<<< HEAD
         <div className="mb-6 flex items-center gap-3 text-lg font-semibold">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-sm">
             <Zap className="h-7 w-7" />
           </div>
           GridDaddy
+=======
+        <div className="mb-6 flex items-center justify-center gap-2 text-sm font-semibold">
+          <img src="/logo.png" alt="GridDaddy Logo" className="h-16 w-auto object-contain" />
+>>>>>>> 9bb5c2fe44b87d645348614f7df38ccb3617c860
         </div>
         <Card className="bg-card-gradient border-border p-6 sm:p-8">
           <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>

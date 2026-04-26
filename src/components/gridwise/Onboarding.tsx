@@ -9,14 +9,14 @@ import {
   Profile,
   formatHour,
 } from "@/lib/gridwise";
-import { saveProfile, seedInitialCheckIns } from "@/lib/repo";
+import { saveProfile } from "@/lib/repo";
 import { useAuth } from "@/components/gridwise/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Zap, ChevronRight, Check, Loader2 } from "lucide-react";
+import { ChevronRight, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -50,7 +50,6 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
     };
     try {
       await saveProfile(user.id, profile, true);
-      await seedInitialCheckIns(user.id, profile);
       onComplete();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save profile");
@@ -169,11 +168,16 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
   return (
     <div className="min-h-screen flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-md">
+<<<<<<< HEAD
         <div className="mb-6 flex items-center gap-3 text-lg font-semibold">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-sm">
             <Zap className="h-7 w-7" />
           </div>
           GridDaddy
+=======
+        <div className="mb-6 flex items-center justify-center gap-2 text-sm font-semibold">
+          <img src="/logo.png" alt="GridDaddy Logo" className="h-16 w-auto object-contain" />
+>>>>>>> 9bb5c2fe44b87d645348614f7df38ccb3617c860
         </div>
         <Card className="bg-card-gradient border-border p-6 sm:p-8">
           <div className="flex gap-1.5 mb-6">
