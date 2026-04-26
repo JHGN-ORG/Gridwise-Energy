@@ -14,7 +14,7 @@ import {
   formatHour,
   streakCount,
 } from "@/lib/gridwise";
-import { Atom, Award, Flame, Flag, Leaf, Loader2, MessageCircle, RotateCcw, Send, Sparkles } from "lucide-react";
+import { Award, Flame, Flag, Leaf, Loader2, RotateCcw, Send, Sparkles, Trophy } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function InsightsPage() {
@@ -34,8 +34,12 @@ export default function InsightsPage() {
     for (let i = 6; i >= 0; i--) {
       const d = dateOffsetISO(i);
       const ci = checkIns.find((c) => c.date === d);
-      const dt = new Date(d);
-      days.push({ date: d, lbs: ci ? +ci.totalLbs.toFixed(2) : 0, label: dt.toLocaleDateString(undefined, { weekday: "short" }) });
+      const dt = new Date(`${d}T12:00:00`);
+      days.push({
+        date: d,
+        lbs: ci ? +ci.totalLbs.toFixed(2) : 0,
+        label: dt.toLocaleDateString(undefined, { weekday: "short" }),
+      });
     }
     return days;
   }, [checkIns]);
@@ -43,7 +47,9 @@ export default function InsightsPage() {
   if (!checkIns || !profile) {
     return (
       <AppShell title="Insights">
-        <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
       </AppShell>
     );
   }
@@ -70,12 +76,12 @@ export default function InsightsPage() {
   const streak = streakCount(checkIns);
 
   return (
-    <AppShell title="Insights" subtitle={`${profile.city}, AZ · personalized to your home`}>
+    <AppShell title="Insights" subtitle={`${profile.city}, AZ | personalized to your home`}>
       <div className="space-y-4">
         <InsightsChatCard />
 
         <Card className="bg-card-gradient border-border p-5">
-          <h2 className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3">Last 7 days · CO₂ (lbs)</h2>
+          <h2 className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3">Last 7 days | CO2 (lbs)</h2>
           <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={last7} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -92,7 +98,7 @@ export default function InsightsPage() {
           </div>
         </Card>
 
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Card className="bg-card-gradient border-border p-5">
             <div className="flex items-center gap-2 text-intensity-high mb-2">
               <Flame className="h-4 w-4" />
@@ -101,10 +107,16 @@ export default function InsightsPage() {
             {worst ? (
               <>
                 <div className="text-lg font-semibold">{APPLIANCE_MAP[worst.applianceId].label}</div>
-                <div className="text-sm text-muted-foreground mt-1">Run mostly around <span className="text-foreground">{formatHour(worst.hour)}</span></div>
-                <div className="mt-3 text-sm"><span className="text-intensity-high font-semibold">{worst.lbs.toFixed(2)} lbs</span> CO₂ across your check-ins.</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Run mostly around <span className="text-foreground">{formatHour(worst.hour)}</span>
+                </div>
+                <div className="mt-3 text-sm">
+                  <span className="text-intensity-high font-semibold">{worst.lbs.toFixed(2)} lbs</span> CO2 across your check-ins.
+                </div>
               </>
-            ) : <div className="text-sm text-muted-foreground">Not enough data.</div>}
+            ) : (
+              <div className="text-sm text-muted-foreground">Not enough data.</div>
+            )}
           </Card>
 
           <Card className="bg-card-gradient border-border p-5">
@@ -115,40 +127,27 @@ export default function InsightsPage() {
             {opportunity ? (
               <>
                 <div className="text-lg font-semibold">{APPLIANCE_MAP[opportunity.applianceId].label}</div>
-                <div className="text-sm text-muted-foreground mt-1">Shift to <span className="text-intensity-low font-medium">{formatHour(opportunity.optimalStart)}</span></div>
-                <div className="mt-3 text-sm">Save <span className="text-intensity-low font-semibold">~{opportunity.savings.toFixed(2)} lbs</span> CO₂/week.</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Shift to <span className="text-intensity-low font-medium">{formatHour(opportunity.optimalStart)}</span>
+                </div>
+                <div className="mt-3 text-sm">
+                  Save <span className="text-intensity-low font-semibold">~{opportunity.savings.toFixed(2)} lbs</span> CO2/week.
+                </div>
               </>
-            ) : <div className="text-sm text-muted-foreground">You’re running things at clean times — nice.</div>}
+            ) : (
+              <div className="text-sm text-muted-foreground">You are running things at clean times.</div>
+            )}
           </Card>
         </div>
-
-        <Card className="nuclear-glow rounded-2xl p-5">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-              style={{ background: "hsl(var(--source-nuclear) / 0.2)", color: "hsl(var(--source-nuclear))" }}>
-              <Atom className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Nuclear contribution</h3>
-              <p className="mt-2 text-sm leading-relaxed">
-                This week, an estimated <span className="text-foreground font-semibold">48%</span> of your Arizona electricity came from zero-emission sources — including{" "}
-                <span className="text-foreground font-semibold">Palo Verde Nuclear Generating Station</span>, the largest nuclear plant in the US by output.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                <Tag color="195 90% 60%" label="Nuclear · 28%" />
-                <Tag color="45 95% 60%" label="Solar · 15%" />
-                <Tag color="190 60% 70%" label="Wind · 5%" />
-              </div>
-            </div>
-          </div>
-        </Card>
 
         <Card className="bg-card-gradient border-border p-5">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Streak</h3>
-              <div className="text-3xl font-bold mt-1">{streak} <span className="text-base font-normal text-muted-foreground">days</span></div>
-              <div className="text-xs text-muted-foreground mt-1">Keep it going — daily check-ins compound.</div>
+              <div className="text-3xl font-bold mt-1">
+                {streak} <span className="text-base font-normal text-muted-foreground">days</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Keep it going. Daily check-ins compound.</div>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
               {streak >= 7 ? <Award className="h-6 w-6" /> : <Flag className="h-6 w-6" />}
@@ -161,7 +160,7 @@ export default function InsightsPage() {
 }
 
 function InsightsChatCard() {
-  const { messages, sendMessage, reset, loading, error } = useGridwiseChat();
+  const { messages, sendMessage, reset, loading, historyLoading, error } = useGridwiseChat();
   const [draft, setDraft] = useState("");
 
   const submit = async () => {
@@ -176,10 +175,10 @@ function InsightsChatCard() {
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
-            <MessageCircle className="h-4 w-4" />
+            <Trophy className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold">Ask GridWise</h2>
+            <h2 className="text-sm font-semibold">Ask GridDaddy</h2>
             <p className="text-xs text-muted-foreground">Chat about your check-ins, appliance timing, and carbon impact.</p>
           </div>
         </div>
@@ -191,13 +190,13 @@ function InsightsChatCard() {
       </div>
 
       <div className="mt-4 max-h-80 space-y-3 overflow-y-auto rounded-xl border border-border bg-background/30 p-3">
-        {messages.length === 0 ? (
+        {historyLoading ? (
+          <div className="flex justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : messages.length === 0 ? (
           <div className="space-y-2 py-2">
-            {[
-              "Why was my impact high?",
-              "What should I change this week?",
-              "Which appliance matters most?",
-            ].map((prompt) => (
+            {["Why was my impact high?", "What should I change this week?", "Which appliance matters most?"].map((prompt) => (
               <button
                 key={prompt}
                 type="button"
@@ -218,7 +217,7 @@ function InsightsChatCard() {
                   : "mr-auto max-w-[92%] border border-border bg-background/60 text-foreground"
               }`}
             >
-              {message.content}
+              {message.role === "assistant" ? <MarkdownMessage content={message.content} /> : message.content}
             </div>
           ))
         )}
@@ -244,9 +243,9 @@ function InsightsChatCard() {
           }}
           placeholder="Ask about your carbon impact..."
           className="min-h-11 resize-none"
-          disabled={loading}
+          disabled={loading || historyLoading}
         />
-        <Button size="icon" onClick={submit} disabled={loading || !draft.trim()} className="h-11 w-11 shrink-0">
+        <Button size="icon" onClick={submit} disabled={loading || historyLoading || !draft.trim()} className="h-11 w-11 shrink-0">
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
@@ -254,16 +253,115 @@ function InsightsChatCard() {
   );
 }
 
-const Tag = ({ color, label }: { color: string; label: string }) => (
-  <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1"
-    style={{ borderColor: `hsl(${color} / 0.4)`, color: `hsl(${color})`, background: `hsl(${color} / 0.08)` }}>
-    <span className="h-1.5 w-1.5 rounded-full" style={{ background: `hsl(${color})` }} />
-    {label}
-  </span>
-);
+function MarkdownMessage({ content }: { content: string }) {
+  const blocks = parseMarkdownBlocks(content);
+  return (
+    <div className="space-y-2">
+      {blocks.map((block, index) => {
+        if (block.type === "ul") {
+          return (
+            <ul key={index} className="ml-4 list-disc space-y-1">
+              {block.items.map((item, itemIndex) => <li key={itemIndex}>{renderInlineMarkdown(item)}</li>)}
+            </ul>
+          );
+        }
+        if (block.type === "ol") {
+          return (
+            <ol key={index} className="ml-4 list-decimal space-y-1">
+              {block.items.map((item, itemIndex) => <li key={itemIndex}>{renderInlineMarkdown(item)}</li>)}
+            </ol>
+          );
+        }
+        return <p key={index}>{renderInlineMarkdown(block.text)}</p>;
+      })}
+    </div>
+  );
+}
+
+type MarkdownBlock =
+  | { type: "p"; text: string }
+  | { type: "ul"; items: string[] }
+  | { type: "ol"; items: string[] };
+
+function parseMarkdownBlocks(content: string): MarkdownBlock[] {
+  const blocks: MarkdownBlock[] = [];
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
+  let paragraph: string[] = [];
+  let list: { type: "ul" | "ol"; items: string[] } | null = null;
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    blocks.push({ type: "p", text: paragraph.join(" ") });
+    paragraph = [];
+  };
+  const flushList = () => {
+    if (!list) return;
+    blocks.push(list);
+    list = null;
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    const bullet = trimmed.match(/^[-*]\s+(.+)$/);
+    const numbered = trimmed.match(/^\d+[.)]\s+(.+)$/);
+    if (bullet || numbered) {
+      flushParagraph();
+      const type = bullet ? "ul" : "ol";
+      if (!list || list.type !== type) {
+        flushList();
+        list = { type, items: [] };
+      }
+      list.items.push((bullet?.[1] ?? numbered?.[1] ?? "").trim());
+      continue;
+    }
+
+    flushList();
+    paragraph.push(trimmed);
+  }
+
+  flushParagraph();
+  flushList();
+  return blocks.length ? blocks : [{ type: "p", text: content }];
+}
+
+function renderInlineMarkdown(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https?:\/\/[^)\s]+\))/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text))) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    const token = match[0];
+    if (token.startsWith("**")) {
+      nodes.push(<strong key={nodes.length}>{token.slice(2, -2)}</strong>);
+    } else if (token.startsWith("`")) {
+      nodes.push(<code key={nodes.length} className="rounded bg-secondary/60 px-1 py-0.5 text-[0.85em]">{token.slice(1, -1)}</code>);
+    } else {
+      const link = token.match(/^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/);
+      if (link) {
+        nodes.push(
+          <a key={nodes.length} href={link[2]} target="_blank" rel="noreferrer" className="text-primary underline-offset-2 hover:underline">
+            {link[1]}
+          </a>,
+        );
+      }
+    }
+    lastIndex = pattern.lastIndex;
+  }
+
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes;
+}
 
 function computeWorstHabit(checkIns: CheckIn[]) {
-  const tally = new Map<string, { applianceId: any; hour: number; lbs: number }>();
+  const tally = new Map<string, { applianceId: keyof typeof APPLIANCE_MAP; hour: number; lbs: number }>();
   for (const ci of checkIns) {
     for (const u of ci.usages) {
       const lbs = ci.perAppliance.find((p) => p.applianceId === u.applianceId)?.lbs ?? 0;
@@ -272,13 +370,15 @@ function computeWorstHabit(checkIns: CheckIn[]) {
       tally.set(key, { applianceId: u.applianceId, hour: u.startHour, lbs: (prev?.lbs ?? 0) + lbs });
     }
   }
-  let best: { applianceId: any; hour: number; lbs: number } | null = null;
-  tally.forEach((v) => { if (!best || v.lbs > best.lbs) best = v; });
+  let best: { applianceId: keyof typeof APPLIANCE_MAP; hour: number; lbs: number } | null = null;
+  tally.forEach((v) => {
+    if (!best || v.lbs > best.lbs) best = v;
+  });
   return best;
 }
 
 function computeBestOpportunity(checkIns: CheckIn[]) {
-  const tally = new Map<string, { applianceId: any; gap: number; optimalStart: number }>();
+  const tally = new Map<string, { applianceId: keyof typeof APPLIANCE_MAP; gap: number; optimalStart: number }>();
   for (const ci of checkIns) {
     for (const p of ci.perAppliance) {
       const gap = p.lbs - p.optimalLbs;
@@ -286,8 +386,10 @@ function computeBestOpportunity(checkIns: CheckIn[]) {
       tally.set(p.applianceId, { applianceId: p.applianceId, gap: (cur?.gap ?? 0) + gap, optimalStart: p.optimalStart });
     }
   }
-  let best: { applianceId: any; gap: number; optimalStart: number } | null = null;
-  tally.forEach((v) => { if (!best || v.gap > best.gap) best = v; });
+  let best: { applianceId: keyof typeof APPLIANCE_MAP; gap: number; optimalStart: number } | null = null;
+  tally.forEach((v) => {
+    if (!best || v.gap > best.gap) best = v;
+  });
   if (!best || best.gap < 0.05) return null;
   const days = checkIns.length;
   return { applianceId: best.applianceId, optimalStart: best.optimalStart, savings: (best.gap / days) * 7 };

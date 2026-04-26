@@ -9,14 +9,14 @@ import {
   Profile,
   formatHour,
 } from "@/lib/gridwise";
-import { saveProfile, seedInitialCheckIns } from "@/lib/repo";
+import { saveProfile } from "@/lib/repo";
 import { useAuth } from "@/components/gridwise/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Zap, ChevronRight, Check, Loader2 } from "lucide-react";
+import { ChevronRight, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -50,7 +50,6 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
     };
     try {
       await saveProfile(user.id, profile, true);
-      await seedInitialCheckIns(user.id, profile);
       onComplete();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save profile");
@@ -61,7 +60,7 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
 
   const steps = [
     {
-      title: "Welcome to Griddaddy",
+      title: "Welcome to GridDaddy",
       subtitle: "Let’s get to know you.",
       valid: name.trim().length >= 1,
       content: (
@@ -170,7 +169,7 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
     <div className="min-h-screen flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center justify-center gap-2 text-sm font-semibold">
-          <img src="/logo.png" alt="Griddaddy Logo" className="h-16 w-auto object-contain" />
+          <img src="/logo.png" alt="GridDaddy Logo" className="h-16 w-auto object-contain" />
         </div>
         <Card className="bg-card-gradient border-border p-6 sm:p-8">
           <div className="flex gap-1.5 mb-6">

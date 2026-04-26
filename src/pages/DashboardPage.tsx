@@ -39,7 +39,7 @@ interface GridData {
 interface Row { on: boolean; range: [number, number]; }
 
 export default function DashboardPage({ profile }: { profile: Profile }) {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const today = todayISO();
 
   // ---- Live grid data ----
@@ -99,15 +99,29 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
   const update = (id: string, patch: Partial<Row>) =>
     setRows((cur) => (cur ? { ...cur, [id]: { ...cur[id], ...patch } } : cur));
 
+  const liveIntensityCurve = useMemo(() => {
+    const history = grid?.history?.history ?? [];
+    if (history.length < 24) return null;
+    return history.slice(-24).map((point) => point.carbonIntensity);
+  }, [grid]);
+
   const submit = async () => {
     if (!user || !rows) return;
+    if (isDemo) {
+      toast.message("Demo mode is read-only. Sign in to log your own appliance use.");
+      return;
+    }
+    if (!liveIntensityCurve) {
+      toast.error("Live grid data is required before calculating your report.");
+      return;
+    }
     const usages: ApplianceUsage[] = Object.entries(rows)
       .filter(([, r]) => r.on && r.range[1] > r.range[0])
       .map(([id, r]) => ({ applianceId: id as any, startHour: r.range[0], endHour: r.range[1] }));
     if (usages.length === 0) { toast.message("Nothing logged — check at least one appliance."); return; }
     setSubmitting(true);
     try {
-      const ci = buildCheckIn(today, usages, profile.homeSize, HOURLY_INTENSITY);
+      const ci = buildCheckIn(today, usages, profile.homeSize, liveIntensityCurve);
       await upsertCheckIn(user.id, ci);
       setResult(ci);
       toast.success("Check-in saved");
@@ -118,10 +132,15 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
     }
   };
 
-  const dateLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-  const baseline = baselineDailyLbs(profile.homeSize);
+  const dateLabel = new Date().toLocaleDateString(undefined, {
+    timeZone: "America/Phoenix",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+  const baseline = liveIntensityCurve ? baselineDailyLbs(profile.homeSize, liveIntensityCurve) : 0;
 
-  // Use live current intensity (g/kWh) if available, else simulated curve for current hour
+  // Current live intensity from the grid API. The static curve is only a non-rendered fallback.
   const currentHour = new Date().getHours();
   const liveIntensity = grid?.intensity.carbonIntensity ?? HOURLY_INTENSITY[currentHour];
   const fossilFree = grid?.breakdown.fossilFreePercentage ?? 0;
@@ -135,20 +154,31 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
           <Card className="lg:col-span-2 bg-card-gradient border-border p-6">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                {grid ? "Live carbon intensity" : "Carbon intensity (simulated)"}
+                {grid ? "Live carbon intensity" : "Carbon intensity"}
               </h2>
               <Button variant="ghost" size="icon" onClick={fetchGrid} disabled={gridLoading} className="h-7 w-7">
                 {gridLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               </Button>
             </div>
-            <IntensityGauge value={liveIntensity} />
+            {grid ? (
+              <IntensityGauge value={liveIntensity} />
+            ) : (
+              <div className="rounded-xl border border-border bg-background/40 p-4 text-sm text-muted-foreground">
+                Live grid data is required to calculate a report.
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3 mt-6 pt-5 border-t border-border">
               <Stat label="Fossil-free" value={`${fossilFree.toFixed(0)}%`} accent="low" />
               <Stat label="Renewable" value={`${renewable.toFixed(0)}%`} accent="medium" />
             </div>
-            {gridFallback && (
+            {false && gridFallback && (
               <p className="mt-3 text-xs text-muted-foreground">
                 Live API unavailable — using Arizona baseline curve. <span className="opacity-70">({gridFallback.slice(0, 100)}…)</span>
+              </p>
+            )}
+            {gridFallback && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Live API unavailable. <span className="opacity-70">({gridFallback.slice(0, 100)}...)</span>
               </p>
             )}
             {grid && (
@@ -225,12 +255,14 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
               })}
             </div>
           )}
-          <Button className="w-full mt-5" size="lg" onClick={submit} disabled={submitting || !rows}>
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Calculate my impact"}
+          <Button className="w-full mt-5" size="lg" onClick={submit} disabled={submitting || !rows || !liveIntensityCurve || isDemo}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isDemo ? "Demo mode is read-only" : "Calculate my impact"}
           </Button>
-          <p className="mt-3 text-[11px] text-muted-foreground text-center">
-            +{baseline.toFixed(2)} lbs/day baseline (always-on phantom load for {profile.homeSize.toLowerCase()} home)
-          </p>
+          {liveIntensityCurve && (
+            <p className="mt-3 text-[11px] text-muted-foreground text-center">
+              +{baseline.toFixed(2)} lbs/day baseline (always-on phantom load for {profile.homeSize.toLowerCase()} home)
+            </p>
+          )}
         </Card>
 
         {result && (

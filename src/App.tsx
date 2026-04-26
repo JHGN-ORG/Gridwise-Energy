@@ -9,6 +9,7 @@ import InsightsPage from "./pages/InsightsPage.tsx";
 import ForecastPage from "./pages/ForecastPage.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
 import AuthPage from "./pages/AuthPage.tsx";
+import AdminPage from "./pages/AdminPage.tsx";
 import { AuthProvider } from "@/components/gridwise/AuthProvider";
 import { RequireAuth } from "@/components/gridwise/RequireAuth";
 
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/insights" element={<RequireAuth><InsightsPage /></RequireAuth>} />
             <Route path="/forecast" element={<ForecastPage />} />
             <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
+            <Route path="/admin" element={<RequireAuth><AdminPage /></RequireAuth>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

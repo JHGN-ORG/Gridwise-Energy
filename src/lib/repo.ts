@@ -5,9 +5,6 @@ import {
   CheckIn,
   HomeSize,
   Profile,
-  buildCheckIn,
-  dateOffsetISO,
-  HOURLY_INTENSITY,
 } from "./gridwise";
 
 interface ProfileRow {
@@ -91,51 +88,4 @@ export async function fetchCheckIn(_userId: string, date: string): Promise<Check
 
 export async function upsertCheckIn(_userId: string, ci: CheckIn) {
   await apiFetch("/api/check-ins", { method: "PUT", body: JSON.stringify(checkInToBody(ci)) });
-}
-
-// Seed 14 days of realistic data on first onboarding (only if user has no check-ins yet)
-export async function seedInitialCheckIns(_userId: string, profile: Profile) {
-  const owned = profile.appliances.length ? profile.appliances : (["hvac", "dishwasher", "washer"] as ApplianceId[]);
-
-  const rows: ReturnType<typeof checkInToBody>[] = [];
-  for (let daysAgo = 14; daysAgo >= 1; daysAgo--) {
-    const date = dateOffsetISO(daysAgo);
-    const progress = (14 - daysAgo) / 13;
-    const usages: { applianceId: ApplianceId; startHour: number; endHour: number }[] = [];
-    if (owned.includes("hvac")) {
-      const len = Math.round(5 - progress * 2);
-      const start = 17 - Math.round(progress * 4);
-      usages.push({ applianceId: "hvac", startHour: start, endHour: start + len });
-    }
-    if (owned.includes("dishwasher")) {
-      const start = 19 + Math.round(progress * 4);
-      usages.push({ applianceId: "dishwasher", startHour: start, endHour: start + 1 });
-    }
-    if (owned.includes("dryer")) {
-      const start = 18 - Math.round(progress * 5);
-      usages.push({ applianceId: "dryer", startHour: start, endHour: start + 1 });
-    }
-    if (owned.includes("washer")) {
-      const start = 17 - Math.round(progress * 4);
-      usages.push({ applianceId: "washer", startHour: start, endHour: start + 1 });
-    }
-    if (owned.includes("ev")) {
-      const start = progress > 0.5 ? 0 : 18;
-      usages.push({ applianceId: "ev", startHour: start, endHour: start + 3 });
-    }
-    if (owned.includes("water_heater")) {
-      usages.push({ applianceId: "water_heater", startHour: 6, endHour: 8 });
-    }
-    if (owned.includes("pool_pump")) {
-      usages.push({ applianceId: "pool_pump", startHour: 11, endHour: 15 });
-    }
-    const ci = buildCheckIn(date, usages, profile.homeSize, HOURLY_INTENSITY);
-    rows.push(checkInToBody(ci));
-  }
-  if (rows.length) {
-    await apiFetch("/api/check-ins", {
-      method: "POST",
-      body: JSON.stringify({ rows, skipIfAny: true }),
-    });
-  }
 }

@@ -9,7 +9,7 @@ import { useAuth } from "@/components/gridwise/AuthProvider";
 import { Pencil, MapPin, Home, Clock, Zap, LogOut, Loader2 } from "lucide-react";
 
 export default function ProfilePage() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isDemo } = useAuth();
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [checkIns, setCheckIns] = useState<{ totalLbs: number; date: string }[]>([]);
@@ -49,9 +49,11 @@ export default function ProfilePage() {
                 {user?.email} · Joined {new Date(profile.joinedAt).toLocaleDateString()}
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
-            </Button>
+            {!isDemo && (
+              <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
+              </Button>
+            )}
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
             <Info icon={<MapPin className="h-4 w-4" />} label="City" value={`${profile.city}, AZ`} />
