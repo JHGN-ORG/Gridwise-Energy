@@ -1,8 +1,7 @@
 import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { setTokenGetter } from "@/lib/api";
-
-const DEMO_STORAGE_KEY = "griddaddy_demo_user_id";
+import { clearDemoSession, getActiveDemoUserId, sanitizeDemoUserId, DEMO_STORAGE_KEY } from "@/lib/demo-session";
 
 export interface AuthUser {
   id: string;
@@ -30,8 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { user: a0User, isAuthenticated, isLoading, logout, getAccessTokenSilently } = useAuth0();
   const [demoUserId, setDemoUserId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
-    const params = new URLSearchParams(window.location.search);
-    return sanitizeDemoUserId(params.get("demoUserId") || window.localStorage.getItem(DEMO_STORAGE_KEY) || "");
+    return getActiveDemoUserId();
   });
 
   useEffect(() => {
@@ -66,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isDemo: !!demoUser,
       signOut: async () => {
         if (demoUser) {
-          window.localStorage.removeItem(DEMO_STORAGE_KEY);
+          clearDemoSession();
           setDemoUserId(null);
           window.location.assign("/auth");
           return;
@@ -80,9 +78,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
-
-function sanitizeDemoUserId(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed.startsWith("demo:")) return null;
-  return trimmed.replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 64);
-}

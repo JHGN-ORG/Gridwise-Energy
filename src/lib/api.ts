@@ -1,7 +1,8 @@
+import { getActiveDemoUserId } from "@/lib/demo-session";
+
 type TokenGetter = () => Promise<string>;
 
 let getToken: TokenGetter | null = null;
-const DEMO_STORAGE_KEY = "griddaddy_demo_user_id";
 
 export function setTokenGetter(fn: TokenGetter | null) {
   getToken = fn;
@@ -34,11 +35,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 }
 
 function getDemoUserId() {
-  if (typeof window === "undefined") return null;
-  const fromQuery = new URLSearchParams(window.location.search).get("demoUserId");
-  const fromStorage = window.localStorage.getItem(DEMO_STORAGE_KEY);
-  const value = fromQuery || fromStorage || "";
-  return value.startsWith("demo:") ? value.replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 64) : null;
+  return getActiveDemoUserId();
 }
 
 function withDemoUser(path: string, demoUserId: string) {
