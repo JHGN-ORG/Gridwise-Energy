@@ -24,7 +24,7 @@ export function useGridwiseChat() {
     setHistoryLoading(true);
     setError(null);
     try {
-      const res = await apiFetch("/api/chat");
+      const res = await apiFetch(withDemoUser("/api/chat"));
       const data = (await res.json()) as ChatHistoryResponse;
       setMessages(Array.isArray(data.messages) ? data.messages : []);
     } catch (err) {
@@ -48,7 +48,7 @@ export function useGridwiseChat() {
       setMessages((cur) => [...cur, { role: "user", content: trimmed }]);
 
       try {
-        const res = await apiFetch("/api/chat", {
+        const res = await apiFetch(withDemoUser("/api/chat"), {
           method: "POST",
           body: JSON.stringify({
             message: trimmed,
@@ -72,7 +72,7 @@ export function useGridwiseChat() {
     const clear = async () => {
       setError(null);
       try {
-        await apiFetch("/api/chat", { method: "DELETE" });
+        await apiFetch(withDemoUser("/api/chat"), { method: "DELETE" });
         setMessages([]);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not clear chat history");
@@ -95,4 +95,12 @@ export function useGridwiseChat() {
     historyLoading,
     error,
   };
+}
+
+function withDemoUser(path: string) {
+  if (typeof window === "undefined") return path;
+  const demoUserId = new URLSearchParams(window.location.search).get("demoUserId");
+  if (!demoUserId) return path;
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}demoUserId=${encodeURIComponent(demoUserId)}`;
 }

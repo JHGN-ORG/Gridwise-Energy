@@ -3,6 +3,7 @@ import { requireUser } from "./_lib/auth.js";
 import { ensureSchema, sql } from "./_lib/db.js";
 import { generateGeminiChatReply } from "./_lib/gemini.js";
 import type { GeminiChatMessage } from "./_lib/gemini.js";
+import { resolveRequestedUserId } from "./_lib/admin.js";
 
 const MAX_MESSAGE_CHARS = 2000;
 const MAX_STORED_MESSAGES = 40;
@@ -14,8 +15,9 @@ interface ChatRequest {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const userId = await requireUser(req, res);
-  if (!userId) return;
+  const actualUserId = await requireUser(req, res);
+  if (!actualUserId) return;
+  const userId = resolveRequestedUserId(actualUserId, req.query.demoUserId);
 
   try {
     await ensureSchema();

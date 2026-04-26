@@ -1,10 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { requireUser } from "./_lib/auth.js";
 import { ensureSchema, sql } from "./_lib/db.js";
+import { resolveRequestedUserId } from "./_lib/admin.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const userId = await requireUser(req, res);
-  if (!userId) return;
+  const actualUserId = await requireUser(req, res);
+  if (!actualUserId) return;
+  const userId = resolveRequestedUserId(actualUserId, req.query.demoUserId);
   await ensureSchema();
 
   if (req.method === "GET") {
