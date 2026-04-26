@@ -36,11 +36,33 @@ export default function LeaderboardPage({ profile }: { profile: Profile }) {
     }
   };
 
-  // Poll every 10 seconds
+  // Poll every 30s while the tab is visible. Pauses on hidden, fetches once on
+  // re-show so users see fresh numbers when they come back.
   useEffect(() => {
-    fetchLeaderboard();
-    const interval = setInterval(fetchLeaderboard, 10000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const start = () => {
+      if (interval) return;
+      fetchLeaderboard();
+      interval = setInterval(fetchLeaderboard, 30000);
+    };
+    const stop = () => {
+      if (!interval) return;
+      clearInterval(interval);
+      interval = null;
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") start();
+      else stop();
+    };
+
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const myEntry = data?.leaderboard.find((e) => e.userId === user?.id);

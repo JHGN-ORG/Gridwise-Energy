@@ -15,7 +15,10 @@ Griddaddy is a personal electricity carbon footprint tracker designed to help us
 - **Frontend:** React, TypeScript, Vite
 - **Styling:** Tailwind CSS, shadcn/ui
 - **Charting:** Recharts
-- **Backend/Database:** Supabase (optional integration), Vercel Serverless Functions
+- **Backend:** Vercel Serverless Functions
+- **Database:** Vercel Postgres (Neon)
+- **Auth:** Auth0
+- **AI:** Google Gemini (chatbot), in-house ridge regression for grid forecasting
 
 ## 💻 Getting Started
 
@@ -40,7 +43,7 @@ Follow these instructions to get the project up and running on your local machin
    ```
 
 3. **Set up Environment Variables:**
-   Copy the example environment file and fill in any required API keys (like Supabase or grid APIs, if applicable):
+   Copy the example environment file and fill in the required keys (Auth0, Vercel Postgres, Gemini):
    ```bash
    cp .env.example .env
    ```
