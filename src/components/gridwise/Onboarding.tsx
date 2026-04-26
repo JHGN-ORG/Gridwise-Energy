@@ -61,7 +61,7 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
 
   const steps = [
     {
-      title: "Welcome to GridWise",
+      title: "Welcome to Griddaddy",
       subtitle: "Let’s get to know you.",
       valid: name.trim().length >= 1,
       content: (
@@ -169,11 +169,8 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
   return (
     <div className="min-h-screen flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center gap-2 text-sm font-semibold">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <Zap className="h-4 w-4" />
-          </div>
-          GridWise
+        <div className="mb-6 flex items-center justify-center gap-2 text-sm font-semibold">
+          <img src="/logo.png" alt="Griddaddy Logo" className="h-16 w-auto object-contain" />
         </div>
         <Card className="bg-card-gradient border-border p-6 sm:p-8">
           <div className="flex gap-1.5 mb-6">
