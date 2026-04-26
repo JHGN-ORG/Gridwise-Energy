@@ -6,9 +6,9 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   return (
     <div className="min-h-screen pb-24">
       <header className="mx-auto w-full max-w-6xl px-5 sm:px-8 pt-8 pb-4">
-        <div className="flex items-center gap-2 text-sm font-semibold tracking-tight">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <Zap className="h-4 w-4" />
+        <div className="flex items-center gap-2.5 text-base font-semibold tracking-tight">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <Zap className="h-5 w-5" />
           </div>
           <span>GridDaddy</span>
         </div>

@@ -168,9 +168,9 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
   return (
     <div className="min-h-screen flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center gap-2 text-sm font-semibold">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <Zap className="h-4 w-4" />
+        <div className="mb-6 flex items-center gap-2.5 text-base font-semibold">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <Zap className="h-5 w-5" />
           </div>
           GridDaddy
         </div>
