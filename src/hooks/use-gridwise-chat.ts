@@ -7,15 +7,11 @@ export interface GridwiseChatMessage {
 }
 
 interface ChatResponse {
-  assistantId?: string;
-  threadId?: string;
   message: string;
 }
 
 export function useGridwiseChat() {
   const [messages, setMessages] = useState<GridwiseChatMessage[]>([]);
-  const [threadId, setThreadId] = useState<string | null>(null);
-  const [assistantId, setAssistantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,13 +29,10 @@ export function useGridwiseChat() {
           method: "POST",
           body: JSON.stringify({
             message: trimmed,
-            threadId,
-            assistantId,
+            history: messages.slice(-8),
           }),
         });
         const data = (await res.json()) as ChatResponse;
-        setThreadId(data.threadId ?? null);
-        setAssistantId(data.assistantId ?? null);
         setMessages((cur) => [...cur, { role: "assistant", content: data.message }]);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Could not send message";
@@ -49,13 +42,11 @@ export function useGridwiseChat() {
         setLoading(false);
       }
     },
-    [assistantId, threadId],
+    [messages],
   );
 
   const reset = useCallback(() => {
     setMessages([]);
-    setThreadId(null);
-    setAssistantId(null);
     setError(null);
   }, []);
 
@@ -65,6 +56,5 @@ export function useGridwiseChat() {
     reset,
     loading,
     error,
-    threadId,
   };
 }

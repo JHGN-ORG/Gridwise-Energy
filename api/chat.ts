@@ -1,18 +1,14 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { requireUser } from "./_lib/auth.js";
 import { ensureSchema, sql } from "./_lib/db.js";
-import {
-  createBackboardThread,
-  createGridwiseAssistant,
-  sendBackboardMessage,
-} from "./_lib/backboard.js";
+import { generateGeminiChatReply } from "./_lib/gemini.js";
+import type { GeminiChatMessage } from "./_lib/gemini.js";
 
 const MAX_MESSAGE_CHARS = 2000;
 
 interface ChatRequest {
   message?: string;
-  threadId?: string;
-  assistantId?: string;
+  history?: GeminiChatMessage[];
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -34,33 +30,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     await ensureSchema();
 
-    const assistantId =
-      process.env.BACKBOARD_ASSISTANT_ID ??
-      body.assistantId ??
-      (await createGridwiseAssistant());
-
-    const threadId = body.threadId ?? (await createBackboardThread(assistantId));
     const context = await buildGridwiseContext(userId);
-    const content = [
-      "GridWise user context:",
-      JSON.stringify(context, null, 2),
-      "",
-      "User question:",
-      userMessage,
-    ].join("\n");
-
-    const reply = await sendBackboardMessage(threadId, content);
+    const reply = await generateGeminiChatReply({
+      systemInstruction:
+        "You are the GridWise Energy Coach. Answer questions about a user's electricity carbon insights, forecast, appliance timing, and emissions. Use only supplied GridWise context for user-specific facts. Do not invent grades, emissions, percentages, grid mix, costs, or forecasts. If the needed data is missing, say what is missing and give general guidance separately. Be concise, practical, and encouraging.",
+      context,
+      history: sanitizeHistory(body.history),
+      message: userMessage,
+    });
 
     return res.status(200).json({
-      assistantId,
-      threadId,
-      message: reply || "I could not generate a response from Backboard.",
+      message: reply,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("chat error:", message);
     return res.status(500).json({ error: message });
   }
+}
+
+function sanitizeHistory(history: unknown): GeminiChatMessage[] {
+  if (!Array.isArray(history)) return [];
+  return history
+    .filter((item): item is GeminiChatMessage => {
+      return (
+        Boolean(item) &&
+        typeof item === "object" &&
+        ((item as GeminiChatMessage).role === "user" || (item as GeminiChatMessage).role === "assistant") &&
+        typeof (item as GeminiChatMessage).content === "string"
+      );
+    })
+    .map((item) => ({ role: item.role, content: item.content.slice(0, 2000) }))
+    .slice(-8);
 }
 
 async function buildGridwiseContext(userId: string) {
