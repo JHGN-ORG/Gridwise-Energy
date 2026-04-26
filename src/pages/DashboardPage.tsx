@@ -39,7 +39,7 @@ interface GridData {
 interface Row { on: boolean; range: [number, number]; }
 
 export default function DashboardPage({ profile }: { profile: Profile }) {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const today = todayISO();
 
   // ---- Live grid data ----
@@ -107,6 +107,10 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
 
   const submit = async () => {
     if (!user || !rows) return;
+    if (isDemo) {
+      toast.message("Demo mode is read-only. Sign in to log your own appliance use.");
+      return;
+    }
     if (!liveIntensityCurve) {
       toast.error("Live grid data is required before calculating your report.");
       return;
@@ -251,8 +255,8 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
               })}
             </div>
           )}
-          <Button className="w-full mt-5" size="lg" onClick={submit} disabled={submitting || !rows || !liveIntensityCurve}>
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Calculate my impact"}
+          <Button className="w-full mt-5" size="lg" onClick={submit} disabled={submitting || !rows || !liveIntensityCurve || isDemo}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isDemo ? "Demo mode is read-only" : "Calculate my impact"}
           </Button>
           {liveIntensityCurve && (
             <p className="mt-3 text-[11px] text-muted-foreground text-center">

@@ -4,9 +4,13 @@ import { ensureSchema, sql } from "./_lib/db.js";
 import { resolveRequestedUserId } from "./_lib/admin.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const actualUserId = await requireUser(req, res);
-  if (!actualUserId) return;
-  const userId = resolveRequestedUserId(actualUserId, req.query.demoUserId);
+  const requestedDemo = getDemoUserId(req.query.demoUserId);
+  let userId = requestedDemo;
+  if (!userId) {
+    const actualUserId = await requireUser(req, res);
+    if (!actualUserId) return;
+    userId = resolveRequestedUserId(actualUserId, req.query.demoUserId);
+  }
   await ensureSchema();
 
   if (req.method === "GET") {
@@ -18,6 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === "PUT") {
+    if (requestedDemo) return res.status(403).json({ error: "demo profiles are read-only" });
     const b = req.body ?? {};
     const onboarded = b.onboarded !== false;
     await sql`
@@ -47,4 +52,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   res.setHeader("Allow", "GET, PUT");
   return res.status(405).end();
+}
+
+function getDemoUserId(value: unknown) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw !== "string" || !raw.startsWith("demo:")) return null;
+  return raw.replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 64);
 }

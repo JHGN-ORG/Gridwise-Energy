@@ -15,9 +15,13 @@ interface ChatRequest {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const actualUserId = await requireUser(req, res);
-  if (!actualUserId) return;
-  const userId = resolveRequestedUserId(actualUserId, req.query.demoUserId);
+  const requestedDemo = getDemoUserId(req.query.demoUserId);
+  let userId = requestedDemo;
+  if (!userId) {
+    const actualUserId = await requireUser(req, res);
+    if (!actualUserId) return;
+    userId = resolveRequestedUserId(actualUserId, req.query.demoUserId);
+  }
 
   try {
     await ensureSchema();
@@ -201,4 +205,10 @@ function getArizonaClock() {
     date: `${value("year")}-${value("month")}-${value("day")}`,
     time: `${value("hour")}:${value("minute")}`,
   };
+}
+
+function getDemoUserId(value: unknown) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw !== "string" || !raw.startsWith("demo:")) return null;
+  return raw.replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 64);
 }

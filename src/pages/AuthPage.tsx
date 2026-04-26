@@ -34,7 +34,7 @@ export default function AuthPage() {
             <Button className="w-full" onClick={login}>Log in</Button>
             <Button variant="outline" className="w-full" onClick={signup}>Sign up</Button>
             <Button variant="secondary" className="w-full" asChild>
-              <Link to="/demo?demoUserId=demo:default">
+              <Link to="/?demoUserId=demo:default">
                 <Trophy className="mr-2 h-4 w-4" /> Try demo account
               </Link>
             </Button>

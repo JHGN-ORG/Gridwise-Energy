@@ -1,6 +1,8 @@
-import { ReactNode, createContext, useContext, useEffect, useMemo } from "react";
+import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { setTokenGetter } from "@/lib/api";
+
+const DEMO_STORAGE_KEY = "griddaddy_demo_user_id";
 
 export interface AuthUser {
   id: string;
@@ -12,6 +14,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   session: { user: AuthUser } | null;
   loading: boolean;
+  isDemo: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -19,11 +22,28 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   session: null,
   loading: true,
+  isDemo: false,
   signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { user: a0User, isAuthenticated, isLoading, logout, getAccessTokenSilently } = useAuth0();
+  const [demoUserId, setDemoUserId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    return sanitizeDemoUserId(params.get("demoUserId") || window.localStorage.getItem(DEMO_STORAGE_KEY) || "");
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedDemo = params.get("demoUserId");
+    const storedDemo = window.localStorage.getItem(DEMO_STORAGE_KEY);
+    const nextDemo = sanitizeDemoUserId(requestedDemo || storedDemo || "");
+    if (nextDemo) {
+      window.localStorage.setItem(DEMO_STORAGE_KEY, nextDemo);
+      setDemoUserId(nextDemo);
+    }
+  }, []);
 
   useEffect(() => {
     setTokenGetter(() => getAccessTokenSilently());
@@ -31,21 +51,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [getAccessTokenSilently]);
 
   const value = useMemo<AuthContextValue>(() => {
+    const demoUser: AuthUser | null = demoUserId
+      ? { id: demoUserId, email: `${demoUserId}@demo.local`, name: "Demo" }
+      : null;
     const user: AuthUser | null =
-      isAuthenticated && a0User?.sub
+      demoUser ??
+      (isAuthenticated && a0User?.sub
         ? { id: a0User.sub, email: a0User.email, name: a0User.name }
-        : null;
+        : null);
     return {
       user,
       session: user ? { user } : null,
-      loading: isLoading,
+      loading: demoUser ? false : isLoading,
+      isDemo: !!demoUser,
       signOut: async () => {
+        if (demoUser) {
+          window.localStorage.removeItem(DEMO_STORAGE_KEY);
+          setDemoUserId(null);
+          window.location.assign("/auth");
+          return;
+        }
         await logout({ logoutParams: { returnTo: window.location.origin } });
       },
     };
-  }, [a0User, isAuthenticated, isLoading, logout]);
+  }, [a0User, demoUserId, isAuthenticated, isLoading, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);
+
+function sanitizeDemoUserId(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("demo:")) return null;
+  return trimmed.replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 64);
+}

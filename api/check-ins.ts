@@ -4,9 +4,13 @@ import { ensureSchema, sql } from "./_lib/db.js";
 import { resolveRequestedUserId } from "./_lib/admin.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const actualUserId = await requireUser(req, res);
-  if (!actualUserId) return;
-  const userId = resolveRequestedUserId(actualUserId, req.query.demoUserId);
+  const requestedDemo = getDemoUserId(req.query.demoUserId);
+  let userId = requestedDemo;
+  if (!userId) {
+    const actualUserId = await requireUser(req, res);
+    if (!actualUserId) return;
+    userId = resolveRequestedUserId(actualUserId, req.query.demoUserId);
+  }
   await ensureSchema();
 
   if (req.method === "GET") {
@@ -26,6 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === "PUT") {
+    if (requestedDemo) return res.status(403).json({ error: "demo check-ins are read-only" });
     const ci = req.body ?? {};
     await sql`
       INSERT INTO check_ins (user_id, date, usages, per_appliance, total_lbs, saved_lbs)
@@ -48,6 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === "POST") {
+    if (requestedDemo) return res.status(403).json({ error: "demo check-ins are read-only" });
     const rows: any[] = Array.isArray(req.body?.rows) ? req.body.rows : [];
     if (req.body?.skipIfAny) {
       const { rows: existing } = await sql`SELECT 1 FROM check_ins WHERE user_id = ${userId} LIMIT 1`;
@@ -72,4 +78,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   res.setHeader("Allow", "GET, PUT, POST");
   return res.status(405).end();
+}
+
+function getDemoUserId(value: unknown) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw !== "string" || !raw.startsWith("demo:")) return null;
+  return raw.replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 64);
 }
