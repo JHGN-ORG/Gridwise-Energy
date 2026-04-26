@@ -165,6 +165,7 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
   return (
     <AppShell title={`Hi, ${profile.name.split(" ")[0]}`} subtitle={`${profile.city}, AZ · ${dateLabel}`}>
       <div className="space-y-6">
+        <PaloVerdeCallout nuclearMW={grid?.breakdown.powerConsumptionBreakdown?.nuclear} />
         <CommunityImpactStrip />
 
         {/* Live grid header */}
@@ -342,7 +343,6 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
           </Card>
         )}
 
-        <PaloVerdeCallout nuclearMW={grid?.breakdown.powerConsumptionBreakdown?.nuclear} />
       </div>
     </AppShell>
   );

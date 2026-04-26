@@ -69,6 +69,7 @@ export default function ForecastPage() {
   return (
     <AppShell title="Grid outlook" subtitle={`ML forecast for the next 24 hours in ${forecastCity}, AZ.`}>
       <div className="space-y-4">
+        <PaloVerdeCallout />
         <Card className="bg-card-gradient border-border p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Predicted carbon intensity</h2>
@@ -153,8 +154,6 @@ export default function ForecastPage() {
             </div>
           </Card>
         )}
-
-        <PaloVerdeCallout />
       </div>
     </AppShell>
   );
