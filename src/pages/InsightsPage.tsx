@@ -14,7 +14,7 @@ import {
   formatHour,
   streakCount,
 } from "@/lib/gridwise";
-import { Award, Flame, Flag, Leaf, Loader2, MessageCircle, RotateCcw, Send, Sparkles } from "lucide-react";
+import { Award, Flame, Flag, Leaf, Loader2, RotateCcw, Send, Sparkles, Trophy } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function InsightsPage() {
@@ -175,10 +175,10 @@ function InsightsChatCard() {
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
-            <MessageCircle className="h-4 w-4" />
+            <Trophy className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold">Ask GridWise</h2>
+            <h2 className="text-sm font-semibold">Ask GRIDDADDY</h2>
             <p className="text-xs text-muted-foreground">Chat about your check-ins, appliance timing, and carbon impact.</p>
           </div>
         </div>
