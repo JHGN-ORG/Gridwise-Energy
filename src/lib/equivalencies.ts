@@ -12,6 +12,11 @@ const LBS_PER_TREE_DAY = 48 / 365;
 export interface Equivalency {
   label: string;
   value: string;
+  // One-line plain-English description of what the unit means in real-world
+  // terms. Shown in the UI so the number is self-explanatory.
+  description: string;
+  // Short attribution / conversion factor, shown as a tooltip for anyone
+  // who wants to double-check the math.
   hint: string;
 }
 
@@ -24,17 +29,20 @@ export function equivalenciesFor(lbsCO2: number): Equivalency[] {
     {
       label: "Miles not driven",
       value: fmt(lbs / LBS_PER_MILE),
-      hint: "Avg US gas car ≈ 0.89 lbs CO₂ / mile",
+      description: "Tailpipe CO₂ from the average US gas car over that distance.",
+      hint: "Avg US gas car ≈ 0.89 lbs CO₂ / mile (EPA, 2024)",
     },
     {
       label: "Phone charges",
       value: fmt(lbs / LBS_PER_CHARGE, 0),
-      hint: "≈ 0.082 lbs CO₂ per full smartphone charge",
+      description: "Equivalent to fully charging a smartphone this many times.",
+      hint: "≈ 0.082 lbs CO₂ per full smartphone charge (EPA, 2024)",
     },
     {
       label: "Tree-days of CO₂",
       value: fmt(lbs / LBS_PER_TREE_DAY, 0),
-      hint: "1 mature tree absorbs ≈ 48 lbs CO₂ / year",
+      description: "How long one mature tree would need to absorb this much CO₂.",
+      hint: "1 mature tree absorbs ≈ 48 lbs CO₂ / year (EPA, 2024)",
     },
   ];
 }

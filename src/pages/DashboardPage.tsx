@@ -21,7 +21,7 @@ import {
   todayISO,
 } from "@/lib/gridwise";
 import { fetchCheckIn, upsertCheckIn } from "@/lib/repo";
-import { equivalenciesFor } from "@/lib/equivalencies";
+import { EquivalenciesGrid } from "@/components/gridwise/EquivalenciesGrid";
 import { useAuth } from "@/components/gridwise/AuthProvider";
 import { Leaf, Loader2, RefreshCw, Sparkles, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
@@ -335,20 +335,7 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
                   <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
                     That's equivalent to
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {equivalenciesFor(result.savedLbs).map((eq) => (
-                      <div
-                        key={eq.label}
-                        className="rounded-xl border border-border bg-background/40 p-3 text-center"
-                        title={eq.hint}
-                      >
-                        <div className="text-lg font-semibold text-intensity-low tabular-nums">{eq.value}</div>
-                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
-                          {eq.label}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <EquivalenciesGrid lbsCO2={result.savedLbs} />
                 </div>
               </>
             )}
