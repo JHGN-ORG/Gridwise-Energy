@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/gridwise/AppShell";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/components/gridwise/AuthProvider";
 import { fetchCheckIns, fetchProfile } from "@/lib/repo";
+import { useGridwiseChat } from "@/hooks/use-gridwise-chat";
 import {
   APPLIANCE_MAP,
   CheckIn,
@@ -11,7 +14,7 @@ import {
   formatHour,
   streakCount,
 } from "@/lib/gridwise";
-import { Atom, Award, Flame, Flag, Leaf, Loader2, Sparkles } from "lucide-react";
+import { Atom, Award, Flame, Flag, Leaf, Loader2, MessageCircle, RotateCcw, Send, Sparkles } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function InsightsPage() {
@@ -48,13 +51,16 @@ export default function InsightsPage() {
   if (checkIns.length < 3) {
     return (
       <AppShell title="Insights" subtitle="Your trends, side-by-side with the grid.">
-        <Card className="bg-card-gradient border-border p-8 text-center">
-          <Sparkles className="h-8 w-8 text-primary mx-auto mb-3" />
-          <h2 className="text-lg font-semibold">Keep checking in!</h2>
-          <p className="text-sm text-muted-foreground mt-2">
-            Log at least 3 days to unlock your weekly trend, worst habits, and savings opportunities.
-          </p>
-        </Card>
+        <div className="space-y-4">
+          <Card className="bg-card-gradient border-border p-8 text-center">
+            <Sparkles className="h-8 w-8 text-primary mx-auto mb-3" />
+            <h2 className="text-lg font-semibold">Keep checking in!</h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              Log at least 3 days to unlock your weekly trend, worst habits, and savings opportunities.
+            </p>
+          </Card>
+          <InsightsChatCard />
+        </div>
       </AppShell>
     );
   }
@@ -66,6 +72,8 @@ export default function InsightsPage() {
   return (
     <AppShell title="Insights" subtitle={`${profile.city}, AZ · personalized to your home`}>
       <div className="space-y-4">
+        <InsightsChatCard />
+
         <Card className="bg-card-gradient border-border p-5">
           <h2 className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3">Last 7 days · CO₂ (lbs)</h2>
           <div className="h-52">
@@ -149,6 +157,100 @@ export default function InsightsPage() {
         </Card>
       </div>
     </AppShell>
+  );
+}
+
+function InsightsChatCard() {
+  const { messages, sendMessage, reset, loading, error } = useGridwiseChat();
+  const [draft, setDraft] = useState("");
+
+  const submit = async () => {
+    const question = draft.trim();
+    if (!question || loading) return;
+    setDraft("");
+    await sendMessage(question);
+  };
+
+  return (
+    <Card className="bg-card-gradient border-border p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <MessageCircle className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold">Ask GridWise</h2>
+            <p className="text-xs text-muted-foreground">Chat about your check-ins, appliance timing, and carbon impact.</p>
+          </div>
+        </div>
+        {messages.length > 0 && (
+          <Button variant="ghost" size="icon" onClick={reset} disabled={loading} className="h-8 w-8 shrink-0">
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+
+      <div className="mt-4 max-h-80 space-y-3 overflow-y-auto rounded-xl border border-border bg-background/30 p-3">
+        {messages.length === 0 ? (
+          <div className="space-y-2 py-2">
+            {[
+              "Why was my impact high?",
+              "What should I change this week?",
+              "Which appliance matters most?",
+            ].map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => setDraft(prompt)}
+                className="block w-full rounded-lg border border-border bg-secondary/30 px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        ) : (
+          messages.map((message, index) => (
+            <div
+              key={`${message.role}-${index}`}
+              className={`rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                message.role === "user"
+                  ? "ml-auto max-w-[85%] bg-primary text-primary-foreground"
+                  : "mr-auto max-w-[92%] border border-border bg-background/60 text-foreground"
+              }`}
+            >
+              {message.content}
+            </div>
+          ))
+        )}
+        {loading && (
+          <div className="mr-auto inline-flex items-center gap-2 rounded-xl border border-border bg-background/60 px-3 py-2 text-sm text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Thinking...
+          </div>
+        )}
+      </div>
+
+      {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+
+      <div className="mt-3 flex gap-2">
+        <Textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          placeholder="Ask about your carbon impact..."
+          className="min-h-11 resize-none"
+          disabled={loading}
+        />
+        <Button size="icon" onClick={submit} disabled={loading || !draft.trim()} className="h-11 w-11 shrink-0">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        </Button>
+      </div>
+    </Card>
   );
 }
 
