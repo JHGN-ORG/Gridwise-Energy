@@ -21,7 +21,6 @@ import {
 } from "@/lib/gridwise";
 import { fetchCheckIn, upsertCheckIn } from "@/lib/repo";
 import { useAuth } from "@/components/gridwise/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
 import { Leaf, Loader2, RefreshCw, Sparkles, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,10 +51,13 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
     setGridLoading(true);
     setGridFallback(null);
     try {
-      const { data, error } = await supabase.functions.invoke("grid-intensity", {
-        body: { address: `${profile.city}, Arizona` },
+      const r = await fetch("/api/grid-intensity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: `${profile.city}, Arizona` }),
       });
-      if (error) throw error;
+      const data = await r.json();
+      if (!r.ok && data?.error !== "api_unauthorized") throw new Error(data?.error || `HTTP ${r.status}`);
       if (data?.error === "api_unauthorized") {
         setGridFallback(data.message);
         setGrid(null);

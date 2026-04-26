@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "./api";
 import {
   ApplianceId,
   ArizonaCity,
@@ -23,12 +23,11 @@ interface ProfileRow {
 }
 
 interface CheckInRow {
-  user_id: string;
   date: string;
   usages: { applianceId: ApplianceId; startHour: number; endHour: number }[];
   per_appliance: { applianceId: ApplianceId; lbs: number; optimalStart: number; optimalLbs: number }[];
-  total_lbs: number;
-  saved_lbs: number;
+  total_lbs: number | string;
+  saved_lbs: number | string;
 }
 
 const rowToProfile = (r: ProfileRow): Profile => ({
@@ -42,86 +41,63 @@ const rowToProfile = (r: ProfileRow): Profile => ({
 });
 
 const rowToCheckIn = (r: CheckInRow): CheckIn => ({
-  date: r.date,
+  date: typeof r.date === "string" ? r.date.slice(0, 10) : r.date,
   usages: r.usages ?? [],
   perAppliance: r.per_appliance ?? [],
   totalLbs: Number(r.total_lbs),
   savedLbs: Number(r.saved_lbs),
 });
 
-export async function fetchProfile(userId: string): Promise<{ profile: Profile | null; onboarded: boolean }> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("user_id,name,city,home_size,appliances,wake_hour,sleep_hour,onboarded,created_at")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return { profile: null, onboarded: false };
-  return { profile: rowToProfile(data as unknown as ProfileRow), onboarded: !!data.onboarded };
+const profileToBody = (p: Profile, onboarded: boolean) => ({
+  name: p.name,
+  city: p.city,
+  home_size: p.homeSize,
+  appliances: p.appliances,
+  wake_hour: p.wakeHour,
+  sleep_hour: p.sleepHour,
+  onboarded,
+});
+
+const checkInToBody = (ci: CheckIn) => ({
+  date: ci.date,
+  usages: ci.usages,
+  per_appliance: ci.perAppliance,
+  total_lbs: ci.totalLbs,
+  saved_lbs: ci.savedLbs,
+});
+
+export async function fetchProfile(_userId: string): Promise<{ profile: Profile | null; onboarded: boolean }> {
+  const res = await apiFetch("/api/profile");
+  const { profile } = (await res.json()) as { profile: ProfileRow | null };
+  if (!profile) return { profile: null, onboarded: false };
+  return { profile: rowToProfile(profile), onboarded: !!profile.onboarded };
 }
 
-export async function saveProfile(userId: string, p: Profile, markOnboarded = true) {
-  const { error } = await supabase
-    .from("profiles")
-    .upsert(
-      {
-        user_id: userId,
-        name: p.name,
-        city: p.city,
-        home_size: p.homeSize,
-        appliances: p.appliances,
-        wake_hour: p.wakeHour,
-        sleep_hour: p.sleepHour,
-        onboarded: markOnboarded,
-      },
-      { onConflict: "user_id" },
-    );
-  if (error) throw error;
+export async function saveProfile(_userId: string, p: Profile, markOnboarded = true) {
+  await apiFetch("/api/profile", { method: "PUT", body: JSON.stringify(profileToBody(p, markOnboarded)) });
 }
 
-export async function fetchCheckIns(userId: string): Promise<CheckIn[]> {
-  const { data, error } = await supabase
-    .from("check_ins")
-    .select("user_id,date,usages,per_appliance,total_lbs,saved_lbs")
-    .eq("user_id", userId)
-    .order("date", { ascending: true });
-  if (error) throw error;
-  return ((data as unknown as CheckInRow[]) ?? []).map(rowToCheckIn);
+export async function fetchCheckIns(_userId: string): Promise<CheckIn[]> {
+  const res = await apiFetch("/api/check-ins");
+  const { checkIns } = (await res.json()) as { checkIns: CheckInRow[] };
+  return (checkIns ?? []).map(rowToCheckIn);
 }
 
-export async function fetchCheckIn(userId: string, date: string): Promise<CheckIn | null> {
-  const { data, error } = await supabase
-    .from("check_ins")
-    .select("user_id,date,usages,per_appliance,total_lbs,saved_lbs")
-    .eq("user_id", userId)
-    .eq("date", date)
-    .maybeSingle();
-  if (error) throw error;
-  return data ? rowToCheckIn(data as unknown as CheckInRow) : null;
+export async function fetchCheckIn(_userId: string, date: string): Promise<CheckIn | null> {
+  const res = await apiFetch(`/api/check-ins?date=${encodeURIComponent(date)}`);
+  const { checkIn } = (await res.json()) as { checkIn: CheckInRow | null };
+  return checkIn ? rowToCheckIn(checkIn) : null;
 }
 
-export async function upsertCheckIn(userId: string, ci: CheckIn) {
-  const row = {
-    user_id: userId,
-    date: ci.date,
-    usages: ci.usages,
-    per_appliance: ci.perAppliance,
-    total_lbs: ci.totalLbs,
-    saved_lbs: ci.savedLbs,
-  };
-  const { error } = await supabase
-    .from("check_ins")
-    .upsert(row as any, { onConflict: "user_id,date" });
-  if (error) throw error;
+export async function upsertCheckIn(_userId: string, ci: CheckIn) {
+  await apiFetch("/api/check-ins", { method: "PUT", body: JSON.stringify(checkInToBody(ci)) });
 }
 
 // Seed 14 days of realistic data on first onboarding (only if user has no check-ins yet)
-export async function seedInitialCheckIns(userId: string, profile: Profile) {
-  const existing = await fetchCheckIns(userId);
-  if (existing.length > 0) return;
+export async function seedInitialCheckIns(_userId: string, profile: Profile) {
   const owned = profile.appliances.length ? profile.appliances : (["hvac", "dishwasher", "washer"] as ApplianceId[]);
 
-  const rows: any[] = [];
+  const rows: ReturnType<typeof checkInToBody>[] = [];
   for (let daysAgo = 14; daysAgo >= 1; daysAgo--) {
     const date = dateOffsetISO(daysAgo);
     const progress = (14 - daysAgo) / 13;
@@ -154,17 +130,12 @@ export async function seedInitialCheckIns(userId: string, profile: Profile) {
       usages.push({ applianceId: "pool_pump", startHour: 11, endHour: 15 });
     }
     const ci = buildCheckIn(date, usages, profile.homeSize, HOURLY_INTENSITY);
-    rows.push({
-      user_id: userId,
-      date: ci.date,
-      usages: ci.usages,
-      per_appliance: ci.perAppliance,
-      total_lbs: ci.totalLbs,
-      saved_lbs: ci.savedLbs,
-    });
+    rows.push(checkInToBody(ci));
   }
   if (rows.length) {
-    const { error } = await supabase.from("check_ins").upsert(rows as any, { onConflict: "user_id,date" });
-    if (error) throw error;
+    await apiFetch("/api/check-ins", {
+      method: "POST",
+      body: JSON.stringify({ rows, skipIfAny: true }),
+    });
   }
 }
