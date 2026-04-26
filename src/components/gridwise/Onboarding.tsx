@@ -9,7 +9,7 @@ import {
   Profile,
   formatHour,
 } from "@/lib/gridwise";
-import { saveProfile, seedInitialCheckIns } from "@/lib/repo";
+import { saveProfile } from "@/lib/repo";
 import { useAuth } from "@/components/gridwise/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +50,6 @@ export function Onboarding({ onComplete, initial }: { onComplete: () => void; in
     };
     try {
       await saveProfile(user.id, profile, true);
-      await seedInitialCheckIns(user.id, profile);
       onComplete();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save profile");

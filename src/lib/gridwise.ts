@@ -88,6 +88,7 @@ export const HOURLY_INTENSITY: number[] = (() => {
 })();
 
 export const G_PER_KWH_TO_LB_PER_KWH = 0.00220462;
+export const ARIZONA_TIME_ZONE = "America/Phoenix";
 
 // Apply home-size adjustment to wattage
 export function adjustedWatts(watts: number, size: HomeSize): number {
@@ -95,10 +96,10 @@ export function adjustedWatts(watts: number, size: HomeSize): number {
 }
 
 // Daily baseline lbs from phantom load (24h * baselineWatts at avg intensity)
-export function baselineDailyLbs(size: HomeSize): number {
+export function baselineDailyLbs(size: HomeSize, intensityCurve = HOURLY_INTENSITY): number {
   const watts = HOME_SIZE_INFO[size].baselineWatts;
   let totalGrams = 0;
-  for (let h = 0; h < 24; h++) totalGrams += (watts / 1000) * HOURLY_INTENSITY[h];
+  for (let h = 0; h < 24; h++) totalGrams += (watts / 1000) * intensityCurve[h];
   return totalGrams * G_PER_KWH_TO_LB_PER_KWH;
 }
 
@@ -140,13 +141,24 @@ export function formatRange(start: number, end: number): string {
 }
 
 export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return dateInArizona(new Date());
 }
 
 export function dateOffsetISO(daysAgo: number): string {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().slice(0, 10);
+  return dateInArizona(d);
+}
+
+function dateInArizona(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ARIZONA_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
 // Build a check-in. Accepts optional intensity curve & home size for personalised math.
@@ -166,7 +178,7 @@ export function buildCheckIn(
   });
   const applianceTotal = perAppliance.reduce((s, p) => s + p.lbs, 0);
   const optimalTotal = perAppliance.reduce((s, p) => s + p.optimalLbs, 0);
-  const baseline = baselineDailyLbs(homeSize);
+  const baseline = baselineDailyLbs(homeSize, intensityCurve);
   return {
     date,
     usages,
