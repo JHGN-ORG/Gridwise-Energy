@@ -44,7 +44,7 @@ export async function generateGeminiChatReply(options: {
       parts: [
         {
           text: [
-            "GridWise user context:",
+            "GridDaddy user context:",
             JSON.stringify(options.context, null, 2),
             "",
             "User question:",

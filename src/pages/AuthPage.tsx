@@ -22,7 +22,7 @@ export default function AuthPage() {
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
             <Zap className="h-4 w-4" />
           </div>
-          GridWise
+          GridDaddy
         </div>
         <Card className="bg-card-gradient border-border p-6 sm:p-8">
           <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>

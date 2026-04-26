@@ -10,7 +10,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
             <Zap className="h-4 w-4" />
           </div>
-          <span>GridWise</span>
+          <span>GridDaddy</span>
         </div>
         {title && <h1 className="mt-5 text-3xl font-bold tracking-tight">{title}</h1>}
         {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}

@@ -109,7 +109,7 @@ export default function ForecastPage() {
             </>
           ) : (
             <div className="rounded-xl border border-border bg-background/40 p-4 text-sm text-muted-foreground">
-              No live history was returned, so GridWise is not showing a forecast.
+              No live history was returned, so GridDaddy is not showing a forecast.
             </div>
           )}
         </Card>
