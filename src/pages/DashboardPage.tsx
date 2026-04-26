@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/gridwise/AppShell";
 import { PaloVerdeCallout } from "@/components/gridwise/PaloVerdeCallout";
 import { Card } from "@/components/ui/card";
@@ -74,12 +74,23 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
     }
   };
 
-  useEffect(() => { fetchGrid(); /* eslint-disable-next-line */ }, [profile.city]);
+  // Debounce city changes — profile edits can fire multiple updates in
+  // quick succession (form re-renders, save round-trip). Without this we'd
+  // hit the grid API once per intermediate value.
+  useEffect(() => {
+    const t = setTimeout(() => { fetchGrid(); }, 500);
+    return () => clearTimeout(t);
+    /* eslint-disable-next-line */
+  }, [profile.city]);
 
   // ---- Check-in form ----
   const [rows, setRows] = useState<Record<string, Row> | null>(null);
   const [result, setResult] = useState<Awaited<ReturnType<typeof buildCheckIn>> | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Synchronous in-flight guard. The `submitting` state flag flips after a
+  // React commit, which leaves a window where rapid double-clicks can each
+  // pass the disabled check and double-POST. The ref closes that window.
+  const submitInFlight = useRef(false);
 
   useEffect(() => {
     if (!user) return;
@@ -107,6 +118,7 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
   }, [grid]);
 
   const submit = async () => {
+    if (submitInFlight.current) return;
     if (!user || !rows) return;
     if (isDemo) {
       toast.message("Demo mode is read-only. Sign in to log your own appliance use.");
@@ -120,6 +132,7 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
       .filter(([, r]) => r.on && r.range[1] > r.range[0])
       .map(([id, r]) => ({ applianceId: id as any, startHour: r.range[0], endHour: r.range[1] }));
     if (usages.length === 0) { toast.message("Nothing logged — check at least one appliance."); return; }
+    submitInFlight.current = true;
     setSubmitting(true);
     try {
       const ci = buildCheckIn(today, usages, profile.homeSize, liveIntensityCurve);
@@ -129,6 +142,7 @@ export default function DashboardPage({ profile }: { profile: Profile }) {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save");
     } finally {
+      submitInFlight.current = false;
       setSubmitting(false);
     }
   };
