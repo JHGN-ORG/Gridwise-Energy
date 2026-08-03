@@ -1,90 +1,47 @@
-# Griddaddy 🌱⚡️
+# GridWise Energy
 
-Griddaddy is a personal electricity carbon footprint tracker designed to help users in Arizona (and beyond) shift their energy use to the cleanest times of the day. By tracking appliance usage and comparing it against live or simulated grid intensity, Griddaddy empowers users to reduce their carbon emissions through **Demand Response**—shifting heavy loads to times when clean energy (like solar and nuclear baseload) is abundant.
+A personal electricity carbon footprint tracker that helps users in Arizona
+shift energy use to the cleanest hours of the day. Log appliance usage, compare
+it against grid carbon intensity, and move heavy loads to when solar and nuclear
+baseload are abundant.
 
-## 🚀 Features
+Built in 24 hours for HackAZ 2026 on the AI for Environmental Sustainability
+track. Deployed as Griddaddy at [griddaddy.us](https://griddaddy.us).
 
-- **Appliance Tracking:** Log daily usage of heavy appliances (HVAC, EV charger, pool pump, dryer).
-- **Carbon Impact Calculation:** See the estimated CO₂ emissions of your habits based on your home size and the local energy mix.
-- **Live Grid Data:** Integrates with real-time grid intensity data (or falls back to a simulated Arizona baseline).
-- **Personalized Insights:** View your 7-day carbon trends, identify your "worst habit," and discover your best opportunity to save emissions by shifting usage.
-- **Nuclear Baseload Awareness:** Highlights the percentage of energy coming from clean baseload sources like the Palo Verde Nuclear Generating Station.
+## Features
 
-## 🛠 Tech Stack
+- **Appliance tracking.** Log daily usage of heavy appliances: HVAC, EV charger, pool pump, dryer.
+- **Carbon impact.** Estimates CO2 emissions from your habits, your home size, and the local energy mix.
+- **Grid data.** Pulls real-time grid intensity, falling back to a simulated Arizona baseline when the feed is unavailable.
+- **Insights.** Seven-day carbon trends, your worst habit, and the single shift that would save the most.
+- **Baseload awareness.** Shows how much of the current mix comes from clean baseload such as Palo Verde.
+- **Leaderboard.** Opt-in ranking against other users by emissions saved.
 
-- **Frontend:** React, TypeScript, Vite
-- **Styling:** Tailwind CSS, shadcn/ui
-- **Charting:** Recharts
-- **Backend:** Vercel Serverless Functions
-- **Database:** Vercel Postgres (Neon)
-- **Auth:** Auth0
-- **AI:** Google Gemini (chatbot), in-house ridge regression for grid forecasting
+## Stack
 
-## 💻 Getting Started
+| | |
+|---|---|
+| Frontend | React, TypeScript, Vite |
+| Styling | Tailwind CSS, shadcn/ui |
+| Charts | Recharts |
+| Backend | Vercel serverless functions |
+| Database | Vercel Postgres (Neon) |
+| Auth | Auth0 |
+| AI | Google Gemini for the chatbot, ridge regression for the grid forecast |
 
-Follow these instructions to get the project up and running on your local machine.
+## Running it
 
-### Prerequisites
-
-- Node.js (v18 or higher recommended)
-- npm (Node Package Manager)
-
-### Installation
-
-1. **Clone the repository** (if you haven't already):
-   ```bash
-   git clone <repository-url>
-   cd Gridwise-Energy
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Set up Environment Variables:**
-   Copy the example environment file and fill in the required keys (Auth0, Vercel Postgres, Gemini):
-   ```bash
-   cp .env.example .env
-   ```
-
-### Running the App Locally
-
-To start the development server:
+Requires Node 18 or newer.
 
 ```bash
+npm install
+cp .env.example .env    # fill in Auth0, Postgres, and Gemini keys
 npm run dev
 ```
 
-The terminal will provide a local URL (typically `http://localhost:5173`). Open this URL in your web browser to view the application.
+Vite serves on `http://localhost:5173`. `npm run build` produces a production
+build and `npm run preview` serves it locally.
 
-### Building for Production
+## Built by
 
-To create a production build:
-
-```bash
-npm run build
-```
-
-To preview the production build locally:
-
-```bash
-npm run preview
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! If you're participating in the Hackathon, check the project tasks to see where you can add meaningful AI/ML integrations, such as an LLM-powered energy coach or predictive grid forecasting.
-
-## 📝 Development Notes
-
-Help me plan for the second part of improving the forecast page:
-
-Insights Page → Chatbot:
-The chatbot should have full context of the user’s profile and be able to interact with user questions and their data in real time.
-
-Forecast (JMB and GSW) → Insights:
-This section will provide AI-powered insights. It will take all available user data, analyze it, and suggest areas for improvement. Unlike the chatbot, this is not interactive—it functions more like a summary or report.
-
----
-*Built for the AI for Environmental Sustainability Hackathon Track.*
+Heng-Pok, Nathan Tebbs, John Imanishimwe, and gsw2019.
